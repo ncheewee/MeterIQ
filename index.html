@@ -662,7 +662,7 @@ async function api(action, data={}){
   try{
     const r = await fetch(S.apiUrl, {
       method:'POST', redirect:'follow',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'text/plain'},
       body: JSON.stringify(body)
     });
     const text = await r.text();
