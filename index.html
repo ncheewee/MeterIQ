@@ -1,0 +1,1852 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>MetrIQ</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+:root{
+  --p:#1565C0;--p2:#1976D2;--p3:#0D47A1;
+  --acc:#00ACC1;--ok:#2E7D32;--warn:#E65100;--err:#C62828;
+  --bg:#F4F7FA;--surf:#FFFFFF;--surf2:#EEF2F7;--bdr:#DDE3EA;
+  --tx:#1A2332;--tx2:#5A6A7A;--txm:#94A3B8;
+  --sh:0 2px 8px rgba(0,0,0,.10);--sh2:0 4px 20px rgba(0,0,0,.14);
+  --r:12px;--rs:8px;--nh:60px;--hh:54px;
+  --font:'Inter',system-ui,sans-serif;--fs:15px;
+}
+[data-theme=dark]{
+  --bg:#0F1923;--surf:#1B2A3B;--surf2:#243349;--bdr:#2C3E52;
+  --tx:#E2EAF4;--tx2:#8FA3BC;--txm:#4E6882;
+  --sh:0 2px 8px rgba(0,0,0,.4);--sh2:0 4px 20px rgba(0,0,0,.55);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:var(--fs);-webkit-text-size-adjust:100%}
+body{font-family:var(--font);background:var(--bg);color:var(--tx);min-height:100vh;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;max-width:540px;margin:0 auto}
+h1{font-size:1.5rem;font-weight:700}h2{font-size:1.2rem;font-weight:700}
+h3{font-size:1rem;font-weight:600}
+input,button,select,textarea{font-family:var(--font)}
+a{color:var(--p);text-decoration:none}
+/* Screens */
+.screen{display:none;flex-direction:column;min-height:100vh}
+.screen.active{display:flex}
+/* Auth */
+.auth-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 20px;gap:20px}
+.auth-card{background:var(--surf);border-radius:var(--r);box-shadow:var(--sh2);padding:28px 24px;width:100%;max-width:400px}
+.logo{text-align:center;margin-bottom:20px}
+.logo .logo-icon{font-size:2.8rem;line-height:1;display:block;margin-bottom:8px}
+.logo h1{color:var(--p);margin-bottom:2px}
+.logo .sub{color:var(--tx2);font-size:.82rem;margin-top:4px}
+.vbadge{display:inline-block;background:var(--p);color:#fff;font-size:.68rem;font-weight:600;padding:2px 8px;border-radius:20px;margin-top:6px}
+/* Forms */
+.fg{margin-bottom:14px}
+.fg label{display:block;font-weight:600;font-size:.78rem;color:var(--tx2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+.fg input,.fg select,.fg textarea{width:100%;padding:11px 13px;border:1.5px solid var(--bdr);border-radius:var(--rs);background:var(--surf);color:var(--tx);font-size:1rem;outline:none;transition:border-color .2s}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--p)}
+.fg textarea{resize:vertical;min-height:72px}
+.fhint{font-size:.75rem;color:var(--txm);margin-top:3px}
+.ferr{font-size:.78rem;color:var(--err);margin-top:4px;display:none}
+.ferr.show{display:block}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:12px 18px;border-radius:var(--rs);font-family:var(--font);font-size:.92rem;font-weight:600;cursor:pointer;border:none;transition:opacity .15s,transform .1s;width:100%;white-space:nowrap}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-p{background:var(--p);color:#fff}
+.btn-s{background:var(--surf2);color:var(--tx);border:1.5px solid var(--bdr)}
+.btn-ok{background:var(--ok);color:#fff}
+.btn-warn{background:var(--warn);color:#fff}
+.btn-err{background:var(--err);color:#fff}
+.btn-ghost{background:transparent;color:var(--p);border:1.5px solid var(--p)}
+.btn-sm{padding:7px 13px;font-size:.8rem;width:auto;border-radius:6px}
+.btn-row{display:flex;gap:10px}.btn-row .btn{flex:1}
+/* App shell */
+#screen-app{padding-bottom:var(--nh)}
+.app-hdr{position:sticky;top:0;z-index:100;height:var(--hh);background:var(--p);color:#fff;display:flex;align-items:center;padding:0 14px;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.hdr-title{flex:1;font-size:1rem;font-weight:700}
+.hdr-meta{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.hdr-user{font-size:.78rem;opacity:.9}
+.hdr-role{font-size:.65rem;font-weight:600;background:rgba(255,255,255,.2);padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em}
+.hdr-btn{background:none;border:none;color:#fff;cursor:pointer;padding:7px;border-radius:7px;font-size:1.1rem;line-height:1}
+/* Bottom nav */
+.bot-nav{position:fixed;bottom:0;left:0;right:0;height:var(--nh);background:var(--surf);border-top:1px solid var(--bdr);display:flex;z-index:100;max-width:540px;margin:0 auto}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;color:var(--txm);border:none;background:none;font-family:var(--font);padding:6px 4px;transition:color .2s}
+.nav-btn.active{color:var(--p)}
+.nav-icon{font-size:1.25rem;line-height:1}
+.nav-lbl{font-size:.62rem;font-weight:600;letter-spacing:.02em}
+/* Views */
+.view{display:none;flex:1;flex-direction:column;overflow:hidden}
+.view.active{display:flex}
+/* Tab bars */
+.tabs{display:flex;background:var(--surf);border-bottom:1px solid var(--bdr);overflow-x:auto;scrollbar-width:none;flex-shrink:0}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;padding:11px 16px;font-size:.82rem;font-weight:600;color:var(--txm);background:none;border:none;border-bottom:2.5px solid transparent;cursor:pointer;white-space:nowrap;font-family:var(--font);transition:color .2s}
+.tab.active{color:var(--p);border-bottom-color:var(--p)}
+.tab-pane{display:none;flex:1;flex-direction:column;overflow-y:auto}
+.tab-pane.active{display:flex}
+/* Scroll pad */
+.pad{padding:14px;display:flex;flex-direction:column;gap:11px}
+/* Cards */
+.card{background:var(--surf);border-radius:var(--r);box-shadow:var(--sh);padding:14px}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.card-title{font-weight:600;font-size:.9rem}
+/* Stat grid */
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sg.sg4{grid-template-columns:repeat(4,1fr)}
+.sc{background:var(--surf);border-radius:var(--r);box-shadow:var(--sh);padding:12px;text-align:center}
+.sv{font-size:1.7rem;font-weight:700;color:var(--p);line-height:1;margin-bottom:3px}
+.sl{font-size:.7rem;color:var(--tx2);font-weight:500}
+/* Meter items */
+.mi{background:var(--surf);border-radius:var(--r);box-shadow:var(--sh);padding:13px 14px;display:flex;align-items:center;gap:11px;cursor:pointer;transition:box-shadow .15s}
+.mi:active{box-shadow:var(--sh2)}
+.sdot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+.dok{background:var(--ok)}.dwarn{background:var(--warn)}.derr{background:var(--err)}.dg{background:var(--txm)}
+.mi-info{flex:1;min-width:0}
+.mi-name{font-weight:600;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mi-sub{font-size:.75rem;color:var(--tx2);margin-top:2px}
+.mi-badge{font-size:.72rem;font-weight:600;padding:3px 8px;border-radius:6px;background:var(--surf2);color:var(--tx2);white-space:nowrap;flex-shrink:0}
+.bdg-ok{background:#E8F5E9;color:var(--ok)}.bdg-err{background:#FFEBEE;color:var(--err)}.bdg-warn{background:#FFF3E0;color:var(--warn)}
+/* Reading form */
+.rfm-hdr{background:var(--p);color:#fff;padding:16px 14px;flex-shrink:0}
+.rfm-hdr h2{margin-bottom:3px}.rfm-hdr p{font-size:.82rem;opacity:.85}
+.rfm-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+.photo-prev{width:100%;max-height:200px;object-fit:contain;border-radius:var(--rs);background:var(--surf2);border:1.5px solid var(--bdr);display:none}
+.photo-prev.show{display:block}
+.blur-warn{background:#FFF3E0;border-radius:var(--rs);padding:9px 12px;font-size:.82rem;color:var(--warn);display:none}
+.blur-warn.show{display:block}
+.anom-warn{background:#FFEBEE;border-left:3px solid var(--err);border-radius:0 var(--rs) var(--rs) 0;padding:9px 12px;font-size:.82rem;color:var(--err);font-weight:500;display:none}
+.anom-warn.show{display:block}
+.val-row{display:flex;align-items:center;gap:8px}
+.val-row input{flex:1;font-size:1.6rem;font-weight:700;text-align:center;padding:14px 10px;border:2px solid var(--bdr);border-radius:var(--rs);background:var(--surf);color:var(--tx);outline:none}
+.val-row input:focus{border-color:var(--p)}
+.ai-bdg{display:inline-flex;align-items:center;gap:3px;background:#E3F2FD;color:#1565C0;font-size:.7rem;font-weight:600;padding:2px 7px;border-radius:20px}
+.ai-edit-bdg{background:#FFF3E0;color:#E65100}
+.timer-row{text-align:center;font-size:.75rem;color:var(--txm);padding:4px 0}
+/* Capture buttons */
+.cap-btns{display:flex;gap:10px;flex-direction:column}
+.cap-btn{background:var(--surf);border-radius:var(--r);box-shadow:var(--sh);padding:18px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;border:2px solid transparent;transition:border-color .2s}
+.cap-btn:active{border-color:var(--p)}
+.cap-btn .cb-icon{font-size:1.8rem}
+.cap-btn .cb-text h3{margin-bottom:2px}
+.cap-btn .cb-text p{font-size:.78rem;color:var(--tx2)}
+/* Mode select */
+.mode-cards{display:flex;gap:12px}
+.mc{background:var(--surf);border-radius:var(--r);box-shadow:var(--sh);padding:20px 14px;flex:1;text-align:center;cursor:pointer;border:2px solid transparent;transition:border-color .2s,box-shadow .15s}
+.mc:active{box-shadow:var(--sh2)}
+.mc.sel{border-color:var(--p)}
+.mc .mc-icon{font-size:2.2rem;display:block;margin-bottom:8px}
+.mc h3{font-size:.92rem;margin-bottom:5px}
+.mc p{font-size:.75rem;color:var(--tx2)}
+/* Batch */
+.batch-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px}
+.bt{background:var(--surf);border-radius:var(--rs);box-shadow:var(--sh);overflow:hidden;cursor:pointer;position:relative}
+.bt img{width:100%;height:90px;object-fit:cover;display:block}
+.bt .bt-info{padding:7px 8px;font-size:.75rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bt .bt-chip{position:absolute;top:5px;right:5px;padding:2px 7px;border-radius:20px;font-size:.68rem;font-weight:600}
+.bt .bt-num{position:absolute;top:5px;left:5px;width:22px;height:22px;background:rgba(0,0,0,.55);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:600}
+/* Batch review */
+.br-item{background:var(--surf);border-radius:var(--rs);box-shadow:var(--sh);padding:10px 12px;display:flex;align-items:center;gap:10px}
+.br-item img{width:52px;height:52px;object-fit:cover;border-radius:6px;flex-shrink:0}
+.br-info{flex:1;min-width:0}
+.br-name{font-weight:600;font-size:.88rem}
+.br-loc{font-size:.73rem;color:var(--tx2);margin-top:1px}
+.br-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.br-item input{width:100px;font-size:1.1rem;font-weight:700;text-align:center;padding:7px 6px;border:2px solid var(--bdr);border-radius:var(--rs);background:var(--surf);color:var(--tx);outline:none}
+.br-item input:focus{border-color:var(--p)}
+/* Progress bar */
+.pbar-wrap{background:var(--surf2);border-radius:20px;height:7px;overflow:hidden}
+.pbar{height:100%;border-radius:20px;transition:width .4s;background:var(--p)}
+.pbar.pwarn{background:var(--warn)}.pbar.perr{background:var(--err)}
+/* Modal */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;align-items:flex-end;justify-content:center}
+.modal-ov.open{display:flex}
+.modal{background:var(--surf);border-radius:var(--r) var(--r) 0 0;width:100%;max-width:540px;max-height:92vh;overflow-y:auto;padding:22px 18px 28px}
+.modal-title{font-size:1.05rem;font-weight:700;margin-bottom:14px;padding-right:28px}
+.modal-close{position:absolute;top:14px;right:14px;background:var(--surf2);border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:.95rem;display:flex;align-items:center;justify-content:center;color:var(--tx)}
+/* List items */
+.li{background:var(--surf);border-radius:var(--rs);box-shadow:var(--sh);padding:11px 13px;display:flex;align-items:center;gap:10px}
+.li-icon{width:34px;height:34px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0}
+.li-info{flex:1;min-width:0}
+.li-name{font-weight:600;font-size:.88rem}
+.li-sub{font-size:.74rem;color:var(--tx2);margin-top:1px}
+.li-acts{display:flex;gap:6px;flex-shrink:0}
+/* Role chips */
+.rc{display:inline-block;font-size:.65rem;font-weight:600;padding:2px 7px;border-radius:20px}
+.rc-a{background:#EDE7F6;color:#4527A0}.rc-m{background:#E3F2FD;color:#0D47A1}.rc-i{background:#E8F5E9;color:#1B5E20}
+/* Config */
+.ci{background:var(--surf);border-radius:var(--rs);box-shadow:var(--sh);padding:11px 13px;display:flex;align-items:center;gap:10px}
+.ci-key{font-size:.75rem;font-weight:600;color:var(--tx2);flex:0 0 150px;word-break:break-all}
+.ci-val{flex:1;font-size:.82rem;font-family:monospace;word-break:break-all;color:var(--tx);overflow:hidden}
+/* Audit */
+.al-item{background:var(--surf);border-radius:var(--rs);padding:9px 12px;border-left:3px solid var(--bdr);font-size:.78rem}
+.al-act{font-weight:600;color:var(--p)}
+.al-det{color:var(--tx);margin-top:2px}
+.al-meta{color:var(--txm);margin-top:1px;font-size:.72rem}
+/* Settings */
+.ss{background:var(--surf);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;margin-bottom:11px}
+.sr{display:flex;align-items:center;padding:13px 14px;gap:12px;border-bottom:1px solid var(--bdr)}
+.sr:last-child{border-bottom:none}
+.sr-lbl{flex:1;font-weight:500;font-size:.92rem}
+.sr-sub{font-size:.73rem;color:var(--tx2);margin-top:1px}
+.toggle{position:relative;width:46px;height:24px;cursor:pointer;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.tslider{position:absolute;inset:0;background:var(--bdr);border-radius:24px;transition:.3s}
+.tslider::before{content:'';position:absolute;left:3px;top:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:.3s}
+.toggle input:checked + .tslider{background:var(--p)}
+.toggle input:checked + .tslider::before{transform:translateX(22px)}
+input[type=range]{width:100%;accent-color:var(--p);cursor:pointer}
+/* Wizard */
+.wiz-prog{display:flex;justify-content:center;gap:6px;margin-bottom:16px}
+.wdot{width:28px;height:4px;border-radius:2px;background:var(--bdr);transition:background .3s}
+.wdot.active{background:var(--p)}.wdot.done{background:var(--ok)}
+.wiz-step{display:none}.wiz-step.active{display:block}
+/* Toast */
+.toast{position:fixed;bottom:calc(var(--nh) + 14px);left:50%;transform:translateX(-50%) translateY(16px);background:#1A2535;color:#fff;padding:9px 20px;border-radius:22px;font-size:.84rem;font-weight:500;opacity:0;transition:all .3s;z-index:999;white-space:nowrap;pointer-events:none;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.tok{background:var(--ok)}.toast.terr{background:var(--err)}.toast.twarn{background:var(--warn)}
+/* Empty */
+.empty{text-align:center;padding:48px 20px;color:var(--txm)}
+.empty .ei{font-size:2.8rem;margin-bottom:10px}
+.empty p{font-size:.88rem}
+/* Spinner */
+.spin{width:18px;height:18px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;display:inline-block}
+.spin-d{border-color:rgba(0,0,0,.12);border-top-color:var(--p)}
+@keyframes sp{to{transform:rotate(360deg)}}
+/* Section label */
+.slbl{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--txm);padding:8px 0 3px}
+/* Chart */
+.chart-wrap{background:var(--surf);border-radius:var(--r);box-shadow:var(--sh);padding:14px}
+.chart-wrap h3{font-size:.82rem;color:var(--tx2);margin-bottom:10px}
+/* Inline alert */
+.ial{padding:9px 12px;border-radius:var(--rs);font-size:.84rem;font-weight:500;display:none;margin-top:8px}
+.ial.show{display:block}
+.ial-err{background:#FFEBEE;color:var(--err)}
+.ial-ok{background:#E8F5E9;color:var(--ok)}
+.ial-info{background:#E3F2FD;color:var(--p)}
+/* Report */
+.rep-card{background:var(--surf);border-radius:var(--r);box-shadow:var(--sh);padding:14px;display:flex;flex-direction:column;gap:10px}
+.eq-count{background:var(--surf2);border-radius:var(--rs);padding:10px 13px;display:flex;align-items:center;justify-content:space-between;font-size:.82rem}
+/* Misc */
+.sep{height:1px;background:var(--bdr);margin:4px 0}
+.txsec{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--txm)}
+.hidden{display:none!important}
+.chip{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:.7rem;font-weight:600}
+.cb{background:#E3F2FD;color:#1565C0}.cg{background:#E8F5E9;color:#2E7D32}
+.co{background:#FFF3E0;color:#E65100}.cr{background:#FFEBEE;color:#C62828}.cgy{background:var(--surf2);color:var(--tx2)}
+.step-prog{display:flex;justify-content:center;gap:6px;padding:12px}
+.spdot{width:8px;height:8px;border-radius:50%;background:var(--bdr)}
+.spdot.active{background:var(--p)}.spdot.done{background:var(--ok)}
+.proc-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:600;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#fff}
+.proc-overlay.open{display:flex}
+.proc-overlay .ps{font-size:1rem;font-weight:600}
+.proc-overlay .pp{font-size:.82rem;opacity:.8}
+canvas.hc{display:none}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+<canvas id="hcanvas" class="hc" width="400" height="400"></canvas>
+<input type="file" accept="image/*" capture="environment" id="fi-cam" style="display:none">
+<input type="file" accept="image/*" id="fi-gal" style="display:none">
+
+<!-- Processing overlay -->
+<div class="proc-overlay" id="proc-overlay">
+  <div class="spin" style="width:40px;height:40px;border-width:4px"></div>
+  <p class="ps" id="proc-msg">Processing...</p>
+  <p class="pp" id="proc-sub"></p>
+</div>
+
+<!-- Modal -->
+<div class="modal-ov" id="modal-ov" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal-box" style="position:relative">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- ═══════ SETUP SCREEN ═══════ -->
+<div class="screen" id="screen-setup">
+  <div class="auth-wrap">
+    <div class="logo">
+      <span class="logo-icon">💧</span>
+      <h1>MetrIQ</h1>
+      <div class="sub">Water Meter Management</div>
+      <span class="vbadge">MVP v1</span>
+    </div>
+    <div class="auth-card">
+      <div class="wiz-prog">
+        <div class="wdot active" id="wd0"></div>
+        <div class="wdot" id="wd1"></div>
+        <div class="wdot" id="wd2"></div>
+      </div>
+      <!-- Step 0: API URL -->
+      <div class="wiz-step active" id="ws0">
+        <h2 style="margin-bottom:6px">Connect Backend</h2>
+        <p style="font-size:.83rem;color:var(--tx2);margin-bottom:16px">Paste your deployed Apps Script Web App URL</p>
+        <div class="fg">
+          <label>Apps Script Web App URL</label>
+          <input type="url" id="s-apiurl" placeholder="https://script.google.com/macros/s/..." autocomplete="off">
+          <div class="fhint">Deploy → New Deployment → Web App in Google Apps Script</div>
+        </div>
+        <div class="ial ial-err" id="s0-err"></div>
+        <button class="btn btn-p" onclick="wizNext(0)">Test &amp; Continue →</button>
+      </div>
+      <!-- Step 1: Admin setup -->
+      <div class="wiz-step" id="ws1">
+        <h2 style="margin-bottom:6px">Create Admin Account</h2>
+        <p style="font-size:.83rem;color:var(--tx2);margin-bottom:16px">One-time setup — creates the database and your admin login</p>
+        <div class="fg"><label>Your Name</label><input type="text" id="s-aname" placeholder="e.g. Admin"></div>
+        <div class="fg"><label>Admin Email</label><input type="email" id="s-aemail" placeholder="admin@company.com"></div>
+        <div class="fg"><label>Admin Password</label><input type="password" id="s-apw" placeholder="Min 8 characters"></div>
+        <div class="fg"><label>Telegram Bot Token</label><input type="text" id="s-ttoken" placeholder="Optional"></div>
+        <div class="fg"><label>Telegram Chat ID</label><input type="text" id="s-tchat" placeholder="Optional"></div>
+        <div class="ial ial-err" id="s1-err"></div>
+        <div class="btn-row">
+          <button class="btn btn-s" onclick="wizBack(1)">← Back</button>
+          <button class="btn btn-p" onclick="wizNext(1)">Initialize →</button>
+        </div>
+      </div>
+      <!-- Step 2: Done -->
+      <div class="wiz-step" id="ws2">
+        <div style="text-align:center;padding:16px 0">
+          <div style="font-size:3rem;margin-bottom:10px">🎉</div>
+          <h2 style="margin-bottom:8px">Setup Complete!</h2>
+          <p style="font-size:.85rem;color:var(--tx2);margin-bottom:20px">MetrIQ is ready. Log in with your admin credentials to start configuring Gemini, EmailJS and meters.</p>
+          <button class="btn btn-p" onclick="showScreen('screen-login')">Go to Login →</button>
+        </div>
+      </div>
+    </div>
+    <div style="text-align:center">
+      <button class="btn btn-s btn-sm" onclick="showScreen('screen-login')" style="width:auto">Already set up? Log in</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ LOGIN SCREEN ═══════ -->
+<div class="screen" id="screen-login">
+  <div class="auth-wrap">
+    <div class="logo">
+      <span class="logo-icon">💧</span>
+      <h1>MetrIQ</h1>
+      <div class="sub">Water Meter Management</div>
+      <span class="vbadge">MVP v1</span>
+    </div>
+    <div class="auth-card">
+      <div class="fg"><label>Email</label><input type="email" id="l-email" placeholder="your@email.com" autocomplete="email"></div>
+      <div class="fg"><label>Password</label><input type="password" id="l-pw" placeholder="Password" autocomplete="current-password"></div>
+      <div class="ial ial-err" id="l-err"></div>
+      <button class="btn btn-p" id="l-btn" onclick="doLogin()" style="margin-top:8px">Log In</button>
+      <div style="text-align:center;margin-top:14px">
+        <button class="btn btn-s btn-sm" onclick="showScreen('screen-setup')" style="width:auto">First time setup</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ MAIN APP ═══════ -->
+<div class="screen" id="screen-app">
+  <header class="app-hdr">
+    <span style="font-size:1.3rem">💧</span>
+    <div class="hdr-title" id="hdr-title">MetrIQ</div>
+    <div class="hdr-meta">
+      <span class="hdr-user" id="hdr-user"></span>
+      <span class="hdr-role" id="hdr-role"></span>
+    </div>
+    <button class="hdr-btn" onclick="doLogout()" title="Logout">⏻</button>
+  </header>
+
+  <!-- ─── INSPECTOR VIEW ─── -->
+  <div class="view" id="view-i">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('view-i','ti-home')">🏠 Home</button>
+      <button class="tab" onclick="switchTab('view-i','ti-session')">📷 Session</button>
+      <button class="tab" onclick="switchTab('view-i','ti-history')">📋 History</button>
+    </div>
+    <!-- Home tab -->
+    <div class="tab-pane active" id="ti-home">
+      <div class="pad">
+        <div class="sg" id="i-stats"></div>
+        <div class="slbl">METERS — THIS MONTH</div>
+        <div id="i-meter-list"><div class="empty"><div class="ei">📡</div><p>Loading meters...</p></div></div>
+      </div>
+    </div>
+    <!-- Session tab -->
+    <div class="tab-pane" id="ti-session">
+      <div class="pad" id="i-session-content">
+        <h2>New Reading Session</h2>
+        <p style="font-size:.83rem;color:var(--tx2);margin-bottom:4px">Choose how you want to collect meter readings this session.</p>
+        <div class="mode-cards">
+          <div class="mc" onclick="startOneByOne()">
+            <span class="mc-icon">🔢</span>
+            <h3>One by One</h3>
+            <p>Read & submit each meter individually</p>
+          </div>
+          <div class="mc" onclick="startBatchCapture()">
+            <span class="mc-icon">📦</span>
+            <h3>Batch Mode</h3>
+            <p>Capture all photos first, then AI-process</p>
+          </div>
+        </div>
+        <div class="card" style="margin-top:4px">
+          <div style="font-size:.8rem;color:var(--tx2)">💡 <strong>One by One:</strong> tap meter → snap or key → submit immediately.<br><br>💡 <strong>Batch:</strong> fast walk capturing all photos → AI reads all at end → review &amp; submit.</div>
+        </div>
+      </div>
+    </div>
+    <!-- History tab -->
+    <div class="tab-pane" id="ti-history">
+      <div class="pad" id="i-history-content">
+        <div class="empty"><div class="ei">📋</div><p>Loading history...</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── READING FORM VIEW (replaces inspector during reading) ─── -->
+  <div class="view" id="view-rfm">
+    <div class="rfm-hdr">
+      <div style="display:flex;align-items:center;gap:10px">
+        <button onclick="exitReadingForm()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:.9rem">← Back</button>
+        <div>
+          <h2 id="rfm-title">Meter Name</h2>
+          <p id="rfm-sub">Location • Unit</p>
+        </div>
+      </div>
+    </div>
+    <div class="rfm-body">
+      <div class="timer-row" id="rfm-timer">⏱ 0:00</div>
+      <img class="photo-prev" id="rfm-photo" src="" alt="Meter photo">
+      <div class="blur-warn" id="rfm-blur">⚠️ Photo may be blurry — AI read disabled. Try retaking.</div>
+      <div class="cap-btns">
+        <div class="cap-btn" onclick="triggerCapture('cam')" id="rfm-snap-btn">
+          <span class="cb-icon">📷</span>
+          <div class="cb-text"><h3>Snap &amp; AI Read</h3><p>Camera → Gemini extracts reading</p></div>
+        </div>
+        <div class="cap-btn" onclick="triggerCapture('gal')">
+          <span class="cb-icon">🖼️</span>
+          <div class="cb-text"><h3>Gallery Photo</h3><p>Choose from photos</p></div>
+        </div>
+      </div>
+      <div class="fg" style="margin-bottom:0">
+        <label>Reading Value <span id="rfm-ai-bdg" style="display:none"></span></label>
+        <div class="val-row">
+          <input type="number" inputmode="decimal" id="rfm-val" placeholder="Enter reading" step="0.01" oninput="onValueInput()">
+        </div>
+      </div>
+      <div class="anom-warn" id="rfm-anom"></div>
+      <div class="fg"><label>Notes (optional)</label><input type="text" id="rfm-notes" placeholder="e.g. Meter obscured"></div>
+      <button class="btn btn-ok" id="rfm-submit-btn" onclick="submitReading()">Submit Reading ✓</button>
+      <div class="ial ial-err" id="rfm-err"></div>
+    </div>
+  </div>
+
+  <!-- ─── BATCH CAPTURE VIEW ─── -->
+  <div class="view" id="view-batch">
+    <div class="rfm-hdr">
+      <div style="display:flex;align-items:center;gap:10px">
+        <button onclick="exitBatch()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:.9rem">✕ Exit</button>
+        <div><h2 id="batch-title">Batch Capture</h2><p id="batch-sub" style="font-size:.82rem;opacity:.85"></p></div>
+      </div>
+    </div>
+    <div class="step-prog">
+      <div class="spdot active" id="sp0"></div>
+      <div class="spdot" id="sp1"></div>
+      <div class="spdot" id="sp2"></div>
+    </div>
+    <div id="batch-content" style="flex:1;overflow-y:auto"></div>
+    <div style="padding:14px;display:flex;gap:10px;flex-shrink:0" id="batch-actions"></div>
+  </div>
+
+  <!-- ─── MANAGER VIEW ─── -->
+  <div class="view" id="view-m">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('view-m','tm-dash')">📊 Dashboard</button>
+      <button class="tab" onclick="switchTab('view-m','tm-analytics');loadAnalytics()">📈 Analytics</button>
+      <button class="tab" onclick="switchTab('view-m','tm-reports');loadReports()">📄 Reports</button>
+    </div>
+    <div class="tab-pane active" id="tm-dash">
+      <div class="pad" id="m-dash-content">
+        <div class="empty"><div class="ei">📊</div><p>Loading...</p></div>
+      </div>
+    </div>
+    <div class="tab-pane" id="tm-analytics">
+      <div class="pad" id="m-analytics-content">
+        <div class="empty"><div class="ei">📈</div><p>Loading...</p></div>
+      </div>
+    </div>
+    <div class="tab-pane" id="tm-reports">
+      <div class="pad" id="m-reports-content">
+        <div class="empty"><div class="ei">📄</div><p>Loading...</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── ADMIN VIEW ─── -->
+  <div class="view" id="view-a">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('view-a','ta-users');loadUsers()">👥 Users</button>
+      <button class="tab" onclick="switchTab('view-a','ta-meters');loadAdminMeters()">📡 Meters</button>
+      <button class="tab" onclick="switchTab('view-a','ta-config');loadConfig()">⚙️ Config</button>
+      <button class="tab" onclick="switchTab('view-a','ta-audit');loadAudit()">📋 Audit</button>
+    </div>
+    <div class="tab-pane active" id="ta-users">
+      <div class="pad">
+        <button class="btn btn-p" onclick="showAddUserModal()">+ Add User</button>
+        <div id="a-users-list"><div class="empty"><div class="ei">👥</div><p>Loading...</p></div></div>
+      </div>
+    </div>
+    <div class="tab-pane" id="ta-meters">
+      <div class="pad">
+        <button class="btn btn-p" onclick="showAddMeterModal()">+ Add Meter</button>
+        <div id="a-meters-list"><div class="empty"><div class="ei">📡</div><p>Loading...</p></div></div>
+      </div>
+    </div>
+    <div class="tab-pane" id="ta-config">
+      <div class="pad" id="a-config-content">
+        <div class="empty"><div class="ei">⚙️</div><p>Loading config...</p></div>
+      </div>
+    </div>
+    <div class="tab-pane" id="ta-audit">
+      <div class="pad" id="a-audit-content">
+        <div class="empty"><div class="ei">📋</div><p>Loading audit log...</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── SETTINGS VIEW ─── -->
+  <div class="view" id="view-s">
+    <div style="padding:14px;overflow-y:auto">
+      <div class="slbl" style="margin-bottom:6px">APPEARANCE</div>
+      <div class="ss">
+        <div class="sr"><div class="sr-lbl">Dark Mode</div><label class="toggle"><input type="checkbox" id="set-dark" onchange="applyTheme(this.checked)"><span class="tslider"></span></label></div>
+        <div class="sr"><div><div class="sr-lbl">Font Size</div><div class="sr-sub" id="fsize-lbl">15px</div></div><input type="range" min="12" max="20" value="15" id="set-font" oninput="applyFont(this.value)" style="width:120px"></div>
+      </div>
+      <div class="slbl" style="margin-bottom:6px">CONNECTION</div>
+      <div class="ss">
+        <div class="sr" style="flex-direction:column;align-items:stretch;gap:8px">
+          <div class="sr-lbl">Apps Script URL</div>
+          <input type="url" id="set-apiurl" style="border:1.5px solid var(--bdr);border-radius:var(--rs);padding:9px 11px;background:var(--surf);color:var(--tx);font-size:.82rem;width:100%" placeholder="https://script.google.com/...">
+          <button class="btn btn-s btn-sm" onclick="saveApiUrl()" style="width:auto">Update URL</button>
+        </div>
+      </div>
+      <div class="slbl" style="margin-bottom:6px">ABOUT</div>
+      <div class="ss">
+        <div class="sr"><div class="sr-lbl">Version</div><span style="font-size:.82rem;color:var(--tx2)">MVP v1.0</span></div>
+        <div class="sr"><div class="sr-lbl">Role</div><span id="set-role" style="font-size:.82rem;color:var(--tx2)"></span></div>
+        <div class="sr"><div class="sr-lbl">Logged in as</div><span id="set-user" style="font-size:.82rem;color:var(--tx2)"></span></div>
+      </div>
+      <div style="padding:20px 0 8px">
+        <button class="btn btn-err" onclick="doLogout()">Log Out</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom nav (built by JS) -->
+  <nav class="bot-nav" id="bot-nav"></nav>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+const LS = {
+  API:'metriq_api', TOKEN:'metriq_tok', USER:'metriq_usr',
+  SETTINGS:'metriq_cfg', TIMER:'metriq_tmr_', BATCH:'metriq_batch'
+};
+let S = {
+  apiUrl:'', token:null, user:null,
+  meters:[], readings:[], emailCount:{sent:0,limit:200},
+  settings:{theme:'light', fontSize:15}
+};
+let activeCharts = {};
+let currentMeter = null;
+let currentPhotoB64 = null;
+let currentInputMethod = 'manual';
+let batchSession = []; // [{meter, photoB64, aiReading, finalReading, inputMethod, status}]
+let batchStep = 0;
+let timerIntervalId = null;
+
+// ═══════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function showView(id){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  // sync nav
+  document.querySelectorAll('.nav-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.view===id);
+  });
+}
+function switchTab(viewId, tabId){
+  const view = document.getElementById(viewId);
+  view.querySelectorAll('.tab').forEach((t,i)=>{
+    const panes = view.querySelectorAll('.tab-pane');
+    t.classList.remove('active');
+    panes[i] && panes[i].classList.remove('active');
+  });
+  // find the clicked tab and matching pane by index
+  const tabs = Array.from(view.querySelectorAll('.tab'));
+  const panes = Array.from(view.querySelectorAll('.tab-pane'));
+  tabs.forEach((t,i)=>{
+    const isActive = panes[i] && panes[i].id===tabId;
+    t.classList.toggle('active',isActive);
+    panes[i] && panes[i].classList.toggle('active',isActive);
+  });
+}
+let toastTimer = null;
+function toast(msg, type=''){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (type ? ' t'+type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 3000);
+}
+function showModal(html){
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal-ov').classList.add('open');
+}
+function closeModal(){
+  document.getElementById('modal-ov').classList.remove('open');
+}
+function showProc(msg, sub=''){
+  document.getElementById('proc-msg').textContent = msg;
+  document.getElementById('proc-sub').textContent = sub;
+  document.getElementById('proc-overlay').classList.add('open');
+}
+function hideProc(){
+  document.getElementById('proc-overlay').classList.remove('open');
+}
+function setIal(id, msg, type='err'){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.textContent = msg;
+  el.className = 'ial ial-'+type+(msg?' show':'');
+}
+function thisMonthYear(){
+  const d = new Date();
+  return {month:d.getMonth()+1, year:d.getFullYear()};
+}
+function fmtDate(s){
+  if(!s) return '';
+  const d = new Date(s);
+  return d.toLocaleDateString('en-SG',{day:'2-digit',month:'short',year:'numeric'});
+}
+function fmtDur(sec){
+  sec = parseInt(sec)||0;
+  const m = Math.floor(sec/60), s = sec%60;
+  return m ? `${m}m ${s}s` : `${s}s`;
+}
+function num(v){ return isNaN(parseFloat(v)) ? '—' : parseFloat(v).toFixed(1); }
+function pct(a,b){ return b===0?0:Math.round(a/b*100); }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function roleClass(r){ return r==='admin'?'rc-a':r==='manager'?'rc-m':'rc-i'; }
+function roleLabel(r){ return r ? r.charAt(0).toUpperCase()+r.slice(1) : ''; }
+
+// ═══════════════════════════════════════════════════
+// API
+// ═══════════════════════════════════════════════════
+async function api(action, data={}){
+  if(!S.apiUrl) return {success:false, error:'No API URL configured'};
+  const body = Object.assign({action}, data);
+  if(S.token) body.token = S.token;
+  try{
+    const r = await fetch(S.apiUrl, {
+      method:'POST', redirect:'follow',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    const text = await r.text();
+    try{ return JSON.parse(text); }
+    catch(e){ return {success:false, error:'Invalid JSON: '+text.slice(0,100)}; }
+  } catch(e){
+    return {success:false, error:'Network error: '+e.message};
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// SETTINGS PERSISTENCE
+// ═══════════════════════════════════════════════════
+function loadSettings(){
+  try{ S.settings = JSON.parse(localStorage.getItem(LS.SETTINGS)||'{}'); } catch(e){}
+  S.settings.theme = S.settings.theme||'light';
+  S.settings.fontSize = S.settings.fontSize||15;
+  applyTheme(S.settings.theme==='dark');
+  applyFont(S.settings.fontSize);
+}
+function saveSettings(){ localStorage.setItem(LS.SETTINGS, JSON.stringify(S.settings)); }
+function applyTheme(dark){
+  const isDark = dark===true||dark==='dark';
+  document.documentElement.setAttribute('data-theme', isDark?'dark':'light');
+  S.settings.theme = isDark?'dark':'light';
+  const cb = document.getElementById('set-dark');
+  if(cb) cb.checked = isDark;
+  saveSettings();
+}
+function applyFont(size){
+  size = parseInt(size)||15;
+  S.settings.fontSize = size;
+  document.documentElement.style.setProperty('--fs', size+'px');
+  const lbl = document.getElementById('fsize-lbl');
+  if(lbl) lbl.textContent = size+'px';
+  const sl = document.getElementById('set-font');
+  if(sl) sl.value = size;
+  saveSettings();
+}
+function saveApiUrl(){
+  const url = document.getElementById('set-apiurl').value.trim();
+  if(!url){toast('Enter a URL first','warn');return;}
+  S.apiUrl = url;
+  localStorage.setItem(LS.API, url);
+  toast('API URL saved','ok');
+}
+
+// ═══════════════════════════════════════════════════
+// SETUP WIZARD
+// ═══════════════════════════════════════════════════
+async function wizNext(step){
+  if(step===0){
+    const url = document.getElementById('s-apiurl').value.trim();
+    if(!url){setIal('s0-err','Enter the Web App URL');return;}
+    S.apiUrl = url;
+    showProc('Testing connection...');
+    const r = await api('ping');
+    hideProc();
+    if(!r.success){setIal('s0-err','Could not connect: '+r.error);return;}
+    localStorage.setItem(LS.API, url);
+    document.getElementById('ws0').classList.remove('active');
+    document.getElementById('ws1').classList.add('active');
+    document.getElementById('wd0').className='wdot done';
+    document.getElementById('wd1').className='wdot active';
+  } else if(step===1){
+    const name=document.getElementById('s-aname').value.trim();
+    const email=document.getElementById('s-aemail').value.trim();
+    const pw=document.getElementById('s-apw').value;
+    const ttoken=document.getElementById('s-ttoken').value.trim();
+    const tchat=document.getElementById('s-tchat').value.trim();
+    if(!name||!email||!pw){setIal('s1-err','Name, email and password are required');return;}
+    if(pw.length<8){setIal('s1-err','Password must be at least 8 characters');return;}
+    showProc('Creating MetrIQ database...','This may take 30–60 seconds');
+    const r = await api('initSetup',{
+      setup_key:'METRIQ_INIT_2024',
+      admin_name:name, admin_email:email, admin_password:pw,
+      telegram_token:ttoken, telegram_chat_id:tchat
+    });
+    hideProc();
+    if(!r.success){setIal('s1-err',r.error||'Setup failed');return;}
+    document.getElementById('ws1').classList.remove('active');
+    document.getElementById('ws2').classList.add('active');
+    document.getElementById('wd1').className='wdot done';
+    document.getElementById('wd2').className='wdot active';
+  }
+}
+function wizBack(step){
+  if(step===1){
+    document.getElementById('ws1').classList.remove('active');
+    document.getElementById('ws0').classList.add('active');
+    document.getElementById('wd1').className='wdot';
+    document.getElementById('wd0').className='wdot active';
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════
+async function doLogin(){
+  const email=document.getElementById('l-email').value.trim();
+  const pw=document.getElementById('l-pw').value;
+  if(!email||!pw){setIal('l-err','Email and password required');return;}
+  const btn=document.getElementById('l-btn');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span>';
+  const r = await api('login',{email,password:pw});
+  btn.disabled=false; btn.textContent='Log In';
+  if(!r.success){setIal('l-err',r.error||'Login failed');return;}
+  setIal('l-err','');
+  setSession(r.user, r.token);
+  enterApp();
+}
+function setSession(user, token){
+  S.user = user; S.token = token;
+  localStorage.setItem(LS.TOKEN, token);
+  localStorage.setItem(LS.USER, JSON.stringify(user));
+}
+function doLogout(){
+  api('logout').catch(()=>{});
+  S.user=null; S.token=null; S.meters=[]; S.readings=[];
+  localStorage.removeItem(LS.TOKEN);
+  localStorage.removeItem(LS.USER);
+  stopTimerDisplay();
+  showScreen('screen-login');
+}
+function buildNav(){
+  const role = S.user.role;
+  let items = [];
+  if(role==='inspector'||role==='admin'){
+    items.push({icon:'🏠',label:'Home',view:'view-i',onclick:"navTo('view-i')"});
+  }
+  if(role==='manager'||role==='admin'){
+    items.push({icon:'📊',label:'Manager',view:'view-m',onclick:"navTo('view-m')"});
+  }
+  if(role==='admin'){
+    items.push({icon:'🛠️',label:'Admin',view:'view-a',onclick:"navTo('view-a')"});
+  }
+  items.push({icon:'⚙️',label:'Settings',view:'view-s',onclick:"navTo('view-s')"});
+  const nav = document.getElementById('bot-nav');
+  nav.innerHTML = items.map(it=>`<button class="nav-btn" data-view="${it.view}" onclick="${it.onclick}"><span class="nav-icon">${it.icon}</span><span class="nav-lbl">${it.label}</span></button>`).join('');
+}
+function navTo(viewId){
+  showView(viewId);
+  if(viewId==='view-i') loadInspectorHome();
+  else if(viewId==='view-m') loadDashboard();
+  else if(viewId==='view-a'){loadUsers();}
+  else if(viewId==='view-s') renderSettings();
+}
+function enterApp(){
+  showScreen('screen-app');
+  document.getElementById('hdr-user').textContent = S.user.name;
+  document.getElementById('hdr-role').textContent = roleLabel(S.user.role);
+  buildNav();
+  const role = S.user.role;
+  if(role==='inspector'||role==='admin'){
+    showView('view-i');
+    loadInspectorHome();
+  } else if(role==='manager'){
+    showView('view-m');
+    loadDashboard();
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// APP INIT
+// ═══════════════════════════════════════════════════
+function initApp(){
+  loadSettings();
+  S.apiUrl = localStorage.getItem(LS.API)||'';
+  const tok = localStorage.getItem(LS.TOKEN);
+  const usr = localStorage.getItem(LS.USER);
+  if(S.apiUrl && tok && usr){
+    try{ S.user=JSON.parse(usr); S.token=tok; }catch(e){}
+    if(S.user && S.token){ enterApp(); return; }
+  }
+  if(!S.apiUrl){ showScreen('screen-setup'); return; }
+  showScreen('screen-login');
+  // Pre-fill setup URL on settings
+  const su = document.getElementById('set-apiurl');
+  if(su) su.value = S.apiUrl;
+}
+
+// ═══════════════════════════════════════════════════
+// TIMER
+// ═══════════════════════════════════════════════════
+function timerStart(meterId){
+  const key = LS.TIMER+meterId;
+  if(!localStorage.getItem(key)) localStorage.setItem(key, Date.now().toString());
+}
+function timerElapsed(meterId){
+  const key = LS.TIMER+meterId;
+  const start = parseInt(localStorage.getItem(key)||'0');
+  if(!start) return 0;
+  return Math.floor((Date.now()-start)/1000);
+}
+function timerClear(meterId){ localStorage.removeItem(LS.TIMER+meterId); }
+function startTimerDisplay(meterId){
+  stopTimerDisplay();
+  timerStart(meterId);
+  timerIntervalId = setInterval(()=>{
+    const el = document.getElementById('rfm-timer');
+    if(el){ const s=timerElapsed(meterId); el.textContent='⏱ '+fmtDur(s); }
+  }, 1000);
+}
+function stopTimerDisplay(){ clearInterval(timerIntervalId); timerIntervalId=null; }
+
+// ═══════════════════════════════════════════════════
+// IMAGE UTILS
+// ═══════════════════════════════════════════════════
+function compressImage(b64, maxKB=150){
+  return new Promise(res=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const canvas = document.getElementById('hcanvas');
+      let w=img.width, h=img.height;
+      const maxD = 1200;
+      if(w>maxD||h>maxD){ const r=Math.min(maxD/w,maxD/h); w=Math.round(w*r); h=Math.round(h*r); }
+      canvas.width=w; canvas.height=h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img,0,0,w,h);
+      let q=0.85, out=canvas.toDataURL('image/jpeg',q);
+      while(out.length > maxKB*1024*1.37 && q>0.4){ q-=0.1; out=canvas.toDataURL('image/jpeg',q); }
+      res(out.split(',')[1]);
+    };
+    img.src = b64.startsWith('data:') ? b64 : 'data:image/jpeg;base64,'+b64;
+  });
+}
+function detectBlur(b64){
+  return new Promise(res=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const c=document.getElementById('hcanvas'), sz=100;
+      c.width=sz; c.height=sz;
+      const ctx=c.getContext('2d');
+      ctx.drawImage(img,0,0,sz,sz);
+      const d=ctx.getImageData(0,0,sz,sz).data;
+      let sum=0, sum2=0, n=0;
+      for(let y=1;y<sz-1;y++){
+        for(let x=1;x<sz-1;x++){
+          const i=(y*sz+x)*4;
+          const g=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+          const lap=Math.abs(4*g
+            -0.299*d[((y-1)*sz+x)*4]-0.587*d[((y-1)*sz+x)*4+1]-0.114*d[((y-1)*sz+x)*4+2]
+            -0.299*d[((y+1)*sz+x)*4]-0.587*d[((y+1)*sz+x)*4+1]-0.114*d[((y+1)*sz+x)*4+2]
+            -0.299*d[(y*sz+(x-1))*4]-0.587*d[(y*sz+(x-1))*4+1]-0.114*d[(y*sz+(x-1))*4+2]
+            -0.299*d[(y*sz+(x+1))*4]-0.587*d[(y*sz+(x+1))*4+1]-0.114*d[(y*sz+(x+1))*4+2]
+          );
+          sum+=lap; sum2+=lap*lap; n++;
+        }
+      }
+      const mean=sum/n, variance=(sum2/n)-mean*mean;
+      res(variance < 80); // true = blurry
+    };
+    img.src = b64.startsWith('data:') ? b64 : 'data:image/jpeg;base64,'+b64;
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// GEMINI VISION (via backend proxy)
+// ═══════════════════════════════════════════════════
+async function runGemini(b64){
+  const r = await api('processImage',{base64:b64});
+  if(!r.success) return null;
+  const text = r.reading||'';
+  const digits = text.replace(/[^0-9.]/g,'').trim();
+  if(!digits || text.toUpperCase().includes('UNCLEAR')) return null;
+  return parseFloat(digits);
+}
+
+// ═══════════════════════════════════════════════════
+// INSPECTOR — HOME
+// ═══════════════════════════════════════════════════
+async function loadInspectorHome(){
+  const {month,year} = thisMonthYear();
+  const [mr, rr] = await Promise.all([
+    api('getMeters'),
+    api('getMyReadings',{month,year})
+  ]);
+  if(!mr.success){toast(mr.error,'err');return;}
+  S.meters = (mr.meters||[]).filter(m=>m.active===true||m.active==='TRUE');
+  S.readings = rr.success ? (rr.readings||[]) : [];
+
+  const submitted = new Set(S.readings.map(r=>r.meter_id));
+  const anomalies = new Set(S.readings.filter(r=>r.anomaly_flag==='ANOMALY').map(r=>r.meter_id));
+  const total=S.meters.length, done=submitted.size, pct2=total?Math.round(done/total*100):0;
+
+  // Stats
+  document.getElementById('i-stats').innerHTML=`
+    <div class="sc"><div class="sv">${done}/${total}</div><div class="sl">Read This Month</div></div>
+    <div class="sc"><div class="sv" style="color:${pct2===100?'var(--ok)':'var(--p)'}">${pct2}%</div><div class="sl">Completion</div></div>
+    <div class="sc"><div class="sv" style="color:${anomalies.size>0?'var(--err)':'var(--ok)'}">${anomalies.size}</div><div class="sl">Anomalies</div></div>
+    <div class="sc"><div class="sv">${S.meters.filter(m=>!submitted.has(m.meter_id)).length}</div><div class="sl">Remaining</div></div>`;
+
+  if(S.meters.length===0){
+    document.getElementById('i-meter-list').innerHTML='<div class="empty"><div class="ei">📡</div><p>No meters assigned. Ask your Admin to add meters.</p></div>';
+    return;
+  }
+
+  const html = S.meters.map(m=>{
+    const reading = S.readings.find(r=>r.meter_id===m.meter_id);
+    let dot='dwarn', badge='', badgeCls='';
+    if(reading){
+      if(reading.anomaly_flag==='ANOMALY'){dot='derr';badge='⚠️ '+num(reading.value);badgeCls='bdg-err';}
+      else{dot='dok';badge='✓ '+num(reading.value);badgeCls='bdg-ok';}
+    } else {
+      badge='Pending';
+    }
+    return `<div class="mi" onclick="openReadingForm('${esc(m.meter_id)}')">
+      <div class="sdot ${dot}"></div>
+      <div class="mi-info">
+        <div class="mi-name">${esc(m.name)}</div>
+        <div class="mi-sub">${esc(m.location)}${m.unit_no?' • '+esc(m.unit_no):''}</div>
+      </div>
+      <div class="mi-badge ${badgeCls}">${badge}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('i-meter-list').innerHTML=html;
+
+  // Also load history tab
+  renderInspectorHistory();
+}
+function renderInspectorHistory(){
+  const readings = S.readings.slice().sort((a,b)=>new Date(b.submitted_at)-new Date(a.submitted_at));
+  if(!readings.length){
+    document.getElementById('i-history-content').innerHTML='<div class="empty"><div class="ei">📋</div><p>No readings submitted this month yet.</p></div>';
+    return;
+  }
+  const html = readings.map(r=>{
+    const m = S.meters.find(m=>m.meter_id===r.meter_id)||{name:r.meter_id,location:''};
+    const anom = r.anomaly_flag==='ANOMALY';
+    return `<div class="card" style="margin:0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <strong>${esc(m.name)}</strong>
+        <span class="${anom?'chip cr':'chip cg'}">${anom?'⚠️ Anomaly':'✓ OK'}</span>
+      </div>
+      <div style="font-size:.82rem;color:var(--tx2)">${esc(m.location)}</div>
+      <div style="display:flex;gap:12px;margin-top:8px;font-size:.82rem">
+        <span>📊 <strong>${num(r.value)}</strong></span>
+        <span>🕐 ${fmtDate(r.date)}</span>
+        <span>${r.input_method==='ai_vision'?'<span class="ai-bdg">🤖 AI</span>':r.input_method==='ai_vision_edited'?'<span class="ai-bdg ai-edit-bdg">✏️ AI+Edit</span>':'⌨️ Manual'}</span>
+        <span>⏱ ${fmtDur(r.duration_seconds)}</span>
+      </div>
+      ${anom?`<div class="anom-warn show" style="margin-top:8px">${esc(r.anomaly_reason)}</div>`:''}
+    </div>`;
+  }).join('');
+  const wrap = document.getElementById('i-history-content');
+  wrap.className='pad'; wrap.innerHTML=html;
+}
+
+// ═══════════════════════════════════════════════════
+// INSPECTOR — READING FORM (One-by-One)
+// ═══════════════════════════════════════════════════
+function openReadingForm(meterId){
+  currentMeter = S.meters.find(m=>m.meter_id===meterId);
+  if(!currentMeter) return;
+  currentPhotoB64 = null;
+  currentInputMethod = 'manual';
+
+  // Check already submitted
+  const existing = S.readings.find(r=>r.meter_id===meterId);
+  if(existing){
+    toast('Already submitted: '+num(existing.value),'warn');
+    return;
+  }
+
+  document.getElementById('rfm-title').textContent = currentMeter.name;
+  document.getElementById('rfm-sub').textContent = [currentMeter.location, currentMeter.unit_no].filter(Boolean).join(' • ');
+  document.getElementById('rfm-photo').className='photo-prev';
+  document.getElementById('rfm-blur').className='blur-warn';
+  document.getElementById('rfm-anom').className='anom-warn';
+  document.getElementById('rfm-val').value='';
+  document.getElementById('rfm-notes').value='';
+  document.getElementById('rfm-ai-bdg').style.display='none';
+  setIal('rfm-err','');
+
+  const prevReading = S.readings.find(r=>r.meter_id===meterId);
+  if(!prevReading){
+    // Check all readings for this meter (cross-month) - just show empty
+  }
+
+  showView('view-rfm');
+  startTimerDisplay(meterId);
+}
+function exitReadingForm(){
+  stopTimerDisplay();
+  showView('view-i');
+  loadInspectorHome();
+}
+
+let captureTarget = 'cam';
+function triggerCapture(type){
+  captureTarget = type;
+  document.getElementById(type==='cam'?'fi-cam':'fi-gal').click();
+}
+
+async function handleFileInput(e, type){
+  const file = e.target.files[0];
+  if(!file) return;
+  e.target.value='';
+
+  showProc('Processing photo...');
+  const reader = new FileReader();
+  reader.onload = async(ev)=>{
+    const full = ev.target.result;
+    const b64 = await compressImage(full);
+    const blurry = await detectBlur(b64);
+    hideProc();
+
+    const photoEl = document.getElementById('rfm-photo');
+    photoEl.src = 'data:image/jpeg;base64,'+b64;
+    photoEl.className='photo-prev show';
+    currentPhotoB64 = b64;
+
+    const blurWarn = document.getElementById('rfm-blur');
+    if(blurry){
+      blurWarn.className='blur-warn show';
+      currentInputMethod='manual';
+      return;
+    }
+    blurWarn.className='blur-warn';
+
+    // Run Gemini
+    showProc('Reading meter with AI...','Gemini 2.0 Flash');
+    const reading = await runGemini(b64);
+    hideProc();
+    if(reading !== null){
+      document.getElementById('rfm-val').value = reading;
+      currentInputMethod = 'ai_vision';
+      const bdg = document.getElementById('rfm-ai-bdg');
+      bdg.innerHTML = '<span class="ai-bdg">🤖 AI Read</span>';
+      bdg.style.display='inline';
+      toast('AI reading: '+reading,'ok');
+    } else {
+      currentInputMethod = 'manual';
+      toast('AI could not read — enter manually','warn');
+    }
+  };
+  reader.readAsDataURL(file);
+}
+function onValueInput(){
+  // If user edits after AI read, mark as edited
+  if(currentInputMethod==='ai_vision'){
+    currentInputMethod='ai_vision_edited';
+    const bdg = document.getElementById('rfm-ai-bdg');
+    bdg.innerHTML='<span class="ai-bdg ai-edit-bdg">✏️ AI+Edit</span>';
+  }
+}
+
+async function submitReading(){
+  const val = document.getElementById('rfm-val').value.trim();
+  if(!val){setIal('rfm-err','Enter the meter reading','err');return;}
+  if(isNaN(parseFloat(val))){setIal('rfm-err','Must be a number','err');return;}
+
+  const btn = document.getElementById('rfm-submit-btn');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span> Submitting...';
+
+  const elapsed = timerElapsed(currentMeter.meter_id);
+  const {month,year} = thisMonthYear();
+  const date = `${year}-${String(month).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}`;
+
+  let imageUrl = '';
+  if(currentPhotoB64){
+    showProc('Uploading photo...');
+    const ur = await api('uploadImage',{
+      base64: currentPhotoB64,
+      filename: `${currentMeter.meter_id}_${date}.jpg`,
+      meter_id: currentMeter.meter_id
+    });
+    hideProc();
+    if(ur.success) imageUrl = ur.url;
+  }
+
+  const r = await api('submitReading',{
+    meter_id: currentMeter.meter_id,
+    value: parseFloat(val),
+    date,
+    image_url: imageUrl,
+    notes: document.getElementById('rfm-notes').value.trim(),
+    duration_seconds: elapsed,
+    input_method: currentInputMethod,
+    session_mode: 'one_by_one'
+  });
+
+  btn.disabled=false; btn.textContent='Submit Reading ✓';
+
+  if(!r.success){setIal('rfm-err',r.error||'Submit failed','err');return;}
+
+  timerClear(currentMeter.meter_id);
+  stopTimerDisplay();
+
+  if(r.anomaly && r.anomaly.flag){
+    const aw = document.getElementById('rfm-anom');
+    aw.textContent='⚠️ Anomaly flagged: '+r.anomaly.reason;
+    aw.className='anom-warn show';
+    toast('Submitted with anomaly flag','warn');
+    setTimeout(()=>{exitReadingForm();},2000);
+  } else {
+    toast('Reading submitted ✓','ok');
+    setTimeout(()=>{exitReadingForm();},1200);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// SESSION MODES
+// ═══════════════════════════════════════════════════
+function startOneByOne(){
+  switchTab('view-i','ti-home');
+  showView('view-i');
+  toast('Tap any pending meter to start','ok');
+}
+
+// ═══════════════════════════════════════════════════
+// BATCH MODE
+// ═══════════════════════════════════════════════════
+const BATCH_ID = ()=>'BATCH_'+Date.now();
+function startBatchCapture(){
+  const pending = S.meters.filter(m=>{
+    const submitted = S.readings.some(r=>r.meter_id===m.meter_id);
+    return !submitted;
+  });
+  if(pending.length===0){toast('All meters already submitted this month','warn');return;}
+
+  batchSession = pending.map(m=>({meter:m, photoB64:null, aiReading:null, finalReading:null, inputMethod:'manual', status:'pending'}));
+  batchStep = 0;
+  renderBatchCapture();
+  showView('view-batch');
+}
+function exitBatch(){
+  // Save partial to localStorage
+  localStorage.setItem(LS.BATCH, JSON.stringify(batchSession));
+  showView('view-i');
+  loadInspectorHome();
+}
+function renderBatchCapture(){
+  const total = batchSession.length;
+  const captured = batchSession.filter(b=>b.photoB64).length;
+  document.getElementById('batch-title').textContent = 'Batch Capture';
+  document.getElementById('batch-sub').textContent = `${captured} of ${total} photos captured`;
+  document.getElementById('sp0').className='spdot active';
+  document.getElementById('sp1').className='spdot';
+  document.getElementById('sp2').className='spdot';
+
+  const grid = batchSession.map((b,i)=>{
+    const status = b.photoB64 ? 'captured' : 'pending';
+    const chip = b.photoB64 ? `<span class="bt-chip" style="background:rgba(46,125,50,.85);color:#fff">✓</span>` : '';
+    const img = b.photoB64 ? `<img src="data:image/jpeg;base64,${b.photoB64}" alt="">` : `<div style="height:90px;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:1.5rem">📷</div>`;
+    return `<div class="bt" onclick="captureBatchItem(${i})">${img}${chip}<div class="bt-num">${i+1}</div><div class="bt-info">${esc(b.meter.name)}</div></div>`;
+  }).join('');
+
+  document.getElementById('batch-content').innerHTML=`<div class="batch-grid">${grid}</div>`;
+  const allCaptured = batchSession.every(b=>b.photoB64);
+  document.getElementById('batch-actions').innerHTML=
+    `<button class="btn btn-s" onclick="exitBatch()">Save &amp; Exit</button>
+     <button class="btn btn-p ${allCaptured?'':'btn-s'}" onclick="${allCaptured?'processBatch()':'toast(\'Capture all photos first\',\'warn\')'}">${allCaptured?'🤖 Process All →':'Capture All First'}</button>`;
+}
+let batchCaptureIdx = -1;
+function captureBatchItem(idx){
+  batchCaptureIdx = idx;
+  document.getElementById('fi-cam').click();
+}
+async function handleBatchFileInput(e){
+  const file = e.target.files[0];
+  if(!file||batchCaptureIdx<0) return;
+  e.target.value='';
+  const reader = new FileReader();
+  reader.onload = async(ev)=>{
+    showProc('Processing photo...');
+    const b64 = await compressImage(ev.target.result);
+    const blurry = await detectBlur(b64);
+    hideProc();
+    if(blurry){ toast('Photo may be blurry — retake?','warn'); }
+    batchSession[batchCaptureIdx].photoB64 = b64;
+    batchCaptureIdx = -1;
+    renderBatchCapture();
+  };
+  reader.readAsDataURL(file);
+}
+async function processBatch(){
+  document.getElementById('sp0').className='spdot done';
+  document.getElementById('sp1').className='spdot active';
+  document.getElementById('batch-title').textContent='AI Processing';
+  document.getElementById('batch-content').innerHTML=`<div class="pad"><div class="empty"><div class="ei"><span class="spin spin-d" style="width:40px;height:40px;border-width:4px"></span></div><p id="batch-proc-lbl">Starting AI analysis...</p></div></div>`;
+  document.getElementById('batch-actions').innerHTML='';
+
+  for(let i=0;i<batchSession.length;i++){
+    const b = batchSession[i];
+    const lbl = document.getElementById('batch-proc-lbl');
+    if(lbl) lbl.textContent=`Reading meter ${i+1} of ${batchSession.length}: ${b.meter.name}`;
+    const reading = await runGemini(b.photoB64);
+    b.aiReading = reading;
+    b.finalReading = reading;
+    b.inputMethod = reading!==null ? 'ai_vision' : 'manual';
+  }
+  renderBatchReview();
+}
+function renderBatchReview(){
+  document.getElementById('sp1').className='spdot done';
+  document.getElementById('sp2').className='spdot active';
+  document.getElementById('batch-title').textContent='Review & Submit';
+  document.getElementById('batch-sub').textContent=`${batchSession.length} readings`;
+
+  const html = batchSession.map((b,i)=>{
+    const bdg = b.aiReading!==null ? `<span class="ai-bdg">🤖 AI</span>` : `<span class="chip cgy">Manual</span>`;
+    return `<div class="br-item">
+      <img src="data:image/jpeg;base64,${b.photoB64}" alt="">
+      <div class="br-info">
+        <div class="br-name">${esc(b.meter.name)}</div>
+        <div class="br-loc">${esc(b.meter.location)}</div>
+        ${bdg}
+      </div>
+      <div class="br-right">
+        <input type="number" inputmode="decimal" value="${b.finalReading!==null?b.finalReading:''}" placeholder="Reading" id="br-val-${i}" oninput="batchValChange(${i},this.value)">
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('batch-content').innerHTML=`<div class="pad">${html}</div>`;
+  document.getElementById('batch-actions').innerHTML=
+    `<button class="btn btn-s" onclick="exitBatch()">Save &amp; Exit</button>
+     <button class="btn btn-ok" onclick="submitBatch()">Submit All ✓</button>`;
+}
+function batchValChange(i, val){
+  const b = batchSession[i];
+  b.finalReading = parseFloat(val)||null;
+  if(b.aiReading!==null && parseFloat(val)!==b.aiReading) b.inputMethod='ai_vision_edited';
+}
+async function submitBatch(){
+  const incomplete = batchSession.filter(b=>b.finalReading===null||b.finalReading==='');
+  if(incomplete.length){ toast(`${incomplete.length} readings missing values`,'warn'); return; }
+
+  showProc('Submitting readings...',`0 of ${batchSession.length}`);
+  const {month,year} = thisMonthYear();
+  const date=`${year}-${String(month).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}`;
+  const batchId = BATCH_ID();
+  let ok=0, errs=[];
+
+  for(let i=0;i<batchSession.length;i++){
+    const b = batchSession[i];
+    document.getElementById('proc-sub').textContent=`${i+1} of ${batchSession.length}`;
+
+    let imageUrl='';
+    if(b.photoB64){
+      const ur = await api('uploadImage',{base64:b.photoB64,filename:`${b.meter.meter_id}_${date}.jpg`,meter_id:b.meter.meter_id});
+      if(ur.success) imageUrl=ur.url;
+    }
+    const r = await api('submitReading',{
+      meter_id:b.meter.meter_id, value:b.finalReading, date,
+      image_url:imageUrl, duration_seconds:0,
+      input_method:b.inputMethod, session_mode:'batch', batch_session_id:batchId
+    });
+    if(r.success) ok++;
+    else errs.push(b.meter.name+': '+(r.error||'failed'));
+  }
+  hideProc();
+  localStorage.removeItem(LS.BATCH);
+  if(errs.length) toast(`${ok} submitted, ${errs.length} failed`,'warn');
+  else toast(`All ${ok} readings submitted ✓`,'ok');
+  showView('view-i');
+  loadInspectorHome();
+}
+
+// ═══════════════════════════════════════════════════
+// MANAGER — DASHBOARD
+// ═══════════════════════════════════════════════════
+async function loadDashboard(){
+  const {month,year} = thisMonthYear();
+  showProc('Loading dashboard...');
+  const [mr, rr, ar] = await Promise.all([
+    api('getMeters'),
+    api('getReadings',{month,year}),
+    api('getAnalytics',{month,year})
+  ]);
+  hideProc();
+  if(!mr.success){toast(mr.error,'err');return;}
+  const meters = (mr.meters||[]).filter(m=>m.active===true||m.active==='TRUE');
+  const readings = rr.success ? (rr.readings||[]) : [];
+  const an = ar.success ? ar.analytics : null;
+
+  S.meters=meters; S.readings=readings;
+
+  const submitted = new Set(readings.map(r=>r.meter_id));
+  const anomalies = readings.filter(r=>r.anomaly_flag==='ANOMALY');
+  const done=submitted.size, total=meters.length;
+
+  const monthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const mname = monthNames[month-1]+' '+year;
+
+  let html=`
+    <div class="slbl">${mname} — SUMMARY</div>
+    <div class="sg">
+      <div class="sc"><div class="sv">${done}/${total}</div><div class="sl">Readings</div></div>
+      <div class="sc"><div class="sv" style="color:${done===total?'var(--ok)':'var(--warn)'}">${total?Math.round(done/total*100):0}%</div><div class="sl">Completion</div></div>
+      <div class="sc"><div class="sv" style="color:${anomalies.length>0?'var(--err)':'var(--ok)'}">${anomalies.length}</div><div class="sl">Anomalies</div></div>
+      <div class="sc"><div class="sv">${an?fmtDur(an.totalDurationSeconds):'—'}</div><div class="sl">Time Spent</div></div>
+    </div>`;
+
+  // Progress bar
+  const ppct = total?Math.round(done/total*100):0;
+  const pclass = ppct===100?'pbar':ppct>60?'pbar':'pbar pwarn';
+  html+=`<div class="card">
+    <div class="card-hdr"><span class="card-title">Monthly Progress</span><span style="font-size:.82rem;color:var(--tx2)">${done} of ${total} meters</span></div>
+    <div class="pbar-wrap"><div class="${pclass}" style="width:${ppct}%"></div></div>
+  </div>`;
+
+  // Anomalies
+  if(anomalies.length){
+    html+=`<div class="slbl">⚠️ ANOMALIES (${anomalies.length})</div>`;
+    html+=anomalies.map(r=>{
+      const m=meters.find(m=>m.meter_id===r.meter_id)||{name:r.meter_id};
+      return `<div class="card" style="border-left:3px solid var(--err)">
+        <div style="font-weight:600">${esc(m.name)}</div>
+        <div style="font-size:.82rem;color:var(--tx2);margin-top:3px">${esc(r.anomaly_reason)}</div>
+        <div style="font-size:.75rem;color:var(--txm);margin-top:4px">Value: ${num(r.value)} • ${fmtDate(r.date)}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Pending meters
+  const pending = meters.filter(m=>!submitted.has(m.meter_id));
+  if(pending.length){
+    html+=`<div class="slbl">⏳ PENDING (${pending.length})</div>`;
+    html+=pending.map(m=>`<div class="li"><div class="li-icon">📡</div><div class="li-info"><div class="li-name">${esc(m.name)}</div><div class="li-sub">${esc(m.location)}</div></div><div class="chip cwarn">Not read</div></div>`).join('');
+  }
+
+  // Input method breakdown
+  if(an){
+    const {ai_vision,ai_vision_edited,manual}=an.inputMethods;
+    const tot2=ai_vision+ai_vision_edited+manual||1;
+    html+=`<div class="card">
+      <div class="card-title" style="margin-bottom:10px">📱 Input Methods</div>
+      <div style="display:flex;flex-direction:column;gap:7px;font-size:.82rem">
+        <div style="display:flex;align-items:center;gap:8px"><span style="width:80px">🤖 AI Full</span><div class="pbar-wrap" style="flex:1"><div class="pbar" style="width:${pct(ai_vision,tot2)}%"></div></div><span style="width:36px;text-align:right">${ai_vision}</span></div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="width:80px">✏️ AI+Edit</span><div class="pbar-wrap" style="flex:1"><div class="pbar" style="width:${pct(ai_vision_edited,tot2)}%;background:var(--warn)"></div></div><span style="width:36px;text-align:right">${ai_vision_edited}</span></div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="width:80px">⌨️ Manual</span><div class="pbar-wrap" style="flex:1"><div class="pbar" style="width:${pct(manual,tot2)}%;background:var(--txm)"></div></div><span style="width:36px;text-align:right">${manual}</span></div>
+      </div>
+    </div>`;
+
+    // Efficiency
+    html+=`<div class="card">
+      <div class="card-title" style="margin-bottom:10px">⏱ Efficiency</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:.82rem">
+        <div><div style="font-size:1.1rem;font-weight:700;color:var(--p)">${fmtDur(an.totalDurationSeconds)}</div><div style="color:var(--tx2)">Total time</div></div>
+        <div><div style="font-size:1.1rem;font-weight:700;color:var(--p)">${fmtDur(an.avgDurationSeconds)}</div><div style="color:var(--tx2)">Avg per meter</div></div>
+        <div><div style="font-size:1.1rem;font-weight:700;color:var(--p)">${an.sessionModes.batch}</div><div style="color:var(--tx2)">Batch sessions</div></div>
+        <div><div style="font-size:1.1rem;font-weight:700;color:var(--p)">${an.sessionModes.one_by_one}</div><div style="color:var(--tx2)">One-by-one</div></div>
+      </div>
+    </div>`;
+  }
+
+  const content = document.getElementById('m-dash-content');
+  content.className='pad'; content.innerHTML=html;
+}
+
+// ═══════════════════════════════════════════════════
+// MANAGER — ANALYTICS
+// ═══════════════════════════════════════════════════
+async function loadAnalytics(){
+  const {month,year} = thisMonthYear();
+  const r = await api('getAnalytics',{month,year});
+  if(!r.success){toast(r.error,'err');return;}
+  const an = r.analytics;
+  const content = document.getElementById('m-analytics-content');
+
+  // Build 6-month trend: get readings for past 6 months
+  const trendR = await api('getReadings',{});
+  const allReadings = trendR.success ? (trendR.readings||[]) : [];
+
+  // Group by month
+  const monthMap = {};
+  allReadings.forEach(rd=>{
+    const key = String(rd.date||'').slice(0,7);
+    if(!monthMap[key]) monthMap[key]=[];
+    monthMap[key].push(parseFloat(rd.value)||0);
+  });
+  const sortedMonths = Object.keys(monthMap).sort().slice(-6);
+  const monthLabels = sortedMonths.map(k=>{
+    const [y,m]=k.split('-');
+    const mn=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return mn[parseInt(m)];
+  });
+  const monthCounts = sortedMonths.map(k=>monthMap[k].length);
+
+  // Input methods donut data
+  const im = an.inputMethods;
+
+  content.className='pad';
+  content.innerHTML=`
+    <div class="chart-wrap"><h3>Readings Per Month (Last 6)</h3><canvas id="ch-monthly" style="max-height:200px"></canvas></div>
+    <div class="chart-wrap"><h3>Input Method Distribution</h3><canvas id="ch-method" style="max-height:180px"></canvas></div>
+    <div class="chart-wrap"><h3>Session Mode</h3><canvas id="ch-mode" style="max-height:180px"></canvas></div>`;
+
+  // Draw charts
+  setTimeout(()=>{
+    drawChart('ch-monthly','bar',monthLabels,[{label:'Readings',data:monthCounts,backgroundColor:'rgba(21,101,192,.75)',borderColor:'#1565C0',borderWidth:1.5,borderRadius:4}]);
+    drawChart('ch-method','doughnut',['AI Full','AI+Edit','Manual'],[{data:[im.ai_vision,im.ai_vision_edited,im.manual],backgroundColor:['#1565C0','#E65100','#94A3B8']}]);
+    drawChart('ch-mode','doughnut',['Batch','One-by-One'],[{data:[an.sessionModes.batch,an.sessionModes.one_by_one],backgroundColor:['#00ACC1','#1565C0']}]);
+  },100);
+}
+function drawChart(id, type, labels, datasets, extra={}){
+  const ctx = document.getElementById(id);
+  if(!ctx) return;
+  if(activeCharts[id]) activeCharts[id].destroy();
+  activeCharts[id] = new Chart(ctx, {
+    type, data:{labels,datasets},
+    options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:12}}},
+      scales: type==='bar'?{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.06)'},ticks:{font:{size:11}}},x:{grid:{display:false},ticks:{font:{size:11}}}}:{},
+      ...extra}
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// MANAGER — REPORTS
+// ═══════════════════════════════════════════════════
+async function loadReports(){
+  const eq = await api('getEmailCount');
+  const cnt = eq.success ? eq : {sent:0,limit:200};
+  const {month,year} = thisMonthYear();
+  const mn=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const content = document.getElementById('m-reports-content');
+  const pct2=Math.round(cnt.sent/cnt.limit*100);
+  const pclass=pct2>80?'pbar perr':pct2>60?'pbar pwarn':'pbar';
+  content.className='pad';
+  content.innerHTML=`
+    <div class="slbl">GENERATE REPORT</div>
+    <div class="rep-card">
+      <div class="fg"><label>Month</label><select id="rep-month">${mn.map((m,i)=>`<option value="${i+1}" ${i+1===month?'selected':''}>${m}</option>`).join('')}</select></div>
+      <div class="fg"><label>Year</label><input type="number" id="rep-year" value="${year}" min="2020" max="2030"></div>
+      <button class="btn btn-p" onclick="downloadReport()">⬇️ Download PDF</button>
+    </div>
+    <div class="slbl">EMAIL REPORT</div>
+    <div class="rep-card">
+      <div class="eq-count">
+        <span>EmailJS this month</span>
+        <strong>${cnt.sent} / ${cnt.limit}</strong>
+      </div>
+      <div class="pbar-wrap"><div class="${pclass}" style="width:${pct2}%"></div></div>
+      <div class="fg" style="margin-top:10px"><label>Send To</label><input type="email" id="rep-email" placeholder="manager@company.com"></div>
+      <button class="btn btn-ghost" onclick="emailReport()">📧 Email Summary</button>
+    </div>`;
+}
+async function downloadReport(){
+  const month = parseInt(document.getElementById('rep-month').value);
+  const year = parseInt(document.getElementById('rep-year').value);
+  showProc('Generating PDF report...');
+  const [mr,rr] = await Promise.all([api('getMeters'),api('getReadings',{month,year})]);
+  hideProc();
+  if(!rr.success){toast(rr.error,'err');return;}
+  const meters=mr.success?(mr.meters||[]).filter(m=>m.active===true||m.active==='TRUE'):[];
+  const readings=rr.readings||[];
+  buildPDF(month,year,readings,meters);
+}
+function buildPDF(month,year,readings,meters){
+  const {jsPDF} = window.jspdf;
+  const doc = new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const mn=['','January','February','March','April','May','June','July','August','September','October','November','December'];
+  const title = `MetrIQ Water Meter Report — ${mn[month]} ${year}`;
+
+  // Header
+  doc.setFillColor(21,101,192);
+  doc.rect(0,0,210,28,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(16); doc.setFont('helvetica','bold');
+  doc.text('MetrIQ',14,12);
+  doc.setFontSize(10); doc.setFont('helvetica','normal');
+  doc.text(title,14,20);
+  doc.text('Generated: '+new Date().toLocaleDateString('en-SG'),14,25.5);
+
+  // Summary
+  doc.setTextColor(0,0,0);
+  const total=meters.length, done=new Set(readings.map(r=>r.meter_id)).size;
+  const anomalies=readings.filter(r=>r.anomaly_flag==='ANOMALY');
+  const totalDur=readings.reduce((a,r)=>a+(parseInt(r.duration_seconds)||0),0);
+  const sumData=[['Total Meters',String(total)],['Readings Submitted',String(done)],['Completion Rate',total?Math.round(done/total*100)+'%':'—'],['Anomalies',String(anomalies.length)],['Total Time Spent',fmtDur(totalDur)]];
+  doc.autoTable({startY:32,head:[['Metric','Value']],body:sumData,theme:'striped',headStyles:{fillColor:[21,101,192],textColor:255,fontSize:9},bodyStyles:{fontSize:9},columnStyles:{0:{cellWidth:80},1:{cellWidth:40}}});
+
+  // Readings table
+  let y = doc.lastAutoTable.finalY + 8;
+  doc.setFontSize(11); doc.setFont('helvetica','bold');
+  doc.text('Meter Readings',14,y); y+=4;
+  const rows = meters.map(m=>{
+    const r=readings.find(r2=>r2.meter_id===m.meter_id);
+    const im=r?{manual:'Manual',ai_vision:'AI Vision',ai_vision_edited:'AI+Edit'}[r.input_method]||'—':'—';
+    return [m.name,m.location,r?String(r.value):'—',r?fmtDate(r.date):'Not read',im,r&&r.anomaly_flag==='ANOMALY'?'⚠️ ANOMALY':'OK'];
+  });
+  doc.autoTable({startY:y,head:[['Meter','Location','Reading','Date','Method','Status']],body:rows,theme:'striped',headStyles:{fillColor:[21,101,192],textColor:255,fontSize:8},bodyStyles:{fontSize:8},columnStyles:{0:{cellWidth:38},1:{cellWidth:38},2:{cellWidth:22},3:{cellWidth:26},4:{cellWidth:22},5:{cellWidth:22}}});
+
+  doc.save(`MetrIQ_${mn[month]}_${year}.pdf`);
+  toast('PDF downloaded ✓','ok');
+}
+async function emailReport(){
+  const to = document.getElementById('rep-email').value.trim();
+  if(!to){toast('Enter recipient email','warn');return;}
+  const month=parseInt(document.getElementById('rep-month').value);
+  const year=parseInt(document.getElementById('rep-year').value);
+
+  // Get EmailJS config from backend
+  const cfgR = await api('getConfig');
+  if(!cfgR.success){toast('Cannot load config','err');return;}
+  const cfg = cfgR.config||{};
+  if(!cfg.emailjs_public_key||cfg.emailjs_public_key.startsWith('••')){
+    toast('EmailJS not configured. Set keys in Admin → Config','warn');return;
+  }
+  showProc('Fetching data...');
+  const rr = await api('getReadings',{month,year});
+  const mr = await api('getMeters');
+  hideProc();
+  const readings=rr.success?(rr.readings||[]):[];
+  const meters=mr.success?(mr.meters||[]).filter(m=>m.active===true||m.active==='TRUE'):[];
+  const total=meters.length, done=new Set(readings.map(r=>r.meter_id)).size;
+  const anomalies=readings.filter(r=>r.anomaly_flag==='ANOMALY');
+  const mn=['','January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  const tableRows=meters.map(m=>{
+    const r=readings.find(r2=>r2.meter_id===m.meter_id);
+    return `<tr><td>${esc(m.name)}</td><td>${esc(m.location)}</td><td>${r?r.value:'—'}</td><td>${r?fmtDate(r.date):'Not read'}</td><td>${r&&r.anomaly_flag==='ANOMALY'?'⚠️ ANOMALY':'OK'}</td></tr>`;
+  }).join('');
+
+  const body=`<h2>MetrIQ — ${mn[month]} ${year} Summary</h2><p>Completion: ${done}/${total} (${total?Math.round(done/total*100):0}%)<br>Anomalies: ${anomalies.length}</p><table border="1" cellpadding="6" style="border-collapse:collapse;font-size:13px"><tr><th>Meter</th><th>Location</th><th>Reading</th><th>Date</th><th>Status</th></tr>${tableRows}</table><br><small>Sent via MetrIQ MVP v1</small>`;
+
+  try{
+    emailjs.init(cfg.emailjs_public_key);
+    showProc('Sending email...');
+    await emailjs.send(cfg.emailjs_service_id, cfg.emailjs_template_id, {
+      to_email:to, subject:`MetrIQ Report — ${mn[month]} ${year}`, message_html:body
+    });
+    await api('updateConfig',{key:'emailjs_sent_count', value:parseInt(cfg.emailjs_sent_count||0)+1});
+    hideProc();
+    toast('Email sent ✓','ok');
+    loadReports();
+  } catch(err){
+    hideProc();
+    toast('Email failed: '+(err.text||err.message||'unknown error'),'err');
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// ADMIN — USERS
+// ═══════════════════════════════════════════════════
+async function loadUsers(){
+  const r = await api('getUsers');
+  if(!r.success){toast(r.error,'err');return;}
+  const users = r.users||[];
+  if(!users.length){
+    document.getElementById('a-users-list').innerHTML='<div class="empty"><div class="ei">👤</div><p>No users yet.</p></div>';
+    return;
+  }
+  const html = users.map(u=>`
+    <div class="li">
+      <div class="li-icon">👤</div>
+      <div class="li-info">
+        <div class="li-name">${esc(u.name)} <span class="rc ${roleClass(u.role)}">${roleLabel(u.role)}</span> ${u.active===false||u.active==='FALSE'?'<span class="chip cgy">Inactive</span>':''}</div>
+        <div class="li-sub">${esc(u.email)}</div>
+      </div>
+      <div class="li-acts">
+        <button class="btn btn-s btn-sm" onclick="showEditUserModal('${esc(u.user_id)}')">Edit</button>
+        ${u.active!==false&&u.active!=='FALSE'&&u.user_id!==S.user.user_id?`<button class="btn btn-err btn-sm" onclick="deactivateUser('${esc(u.user_id)}','${esc(u.name)}')">✕</button>`:''}
+      </div>
+    </div>`).join('');
+  document.getElementById('a-users-list').innerHTML=html;
+}
+function showAddUserModal(){
+  showModal(`<div class="modal-title">Add User</div>
+    <div class="fg"><label>Name</label><input type="text" id="nu-name" placeholder="Full name"></div>
+    <div class="fg"><label>Email</label><input type="email" id="nu-email" placeholder="email@company.com"></div>
+    <div class="fg"><label>Role</label><select id="nu-role"><option value="inspector">Inspector</option><option value="manager">Manager</option><option value="admin">Admin</option></select></div>
+    <div class="fg"><label>Password</label><input type="password" id="nu-pw" placeholder="Min 8 characters"></div>
+    <div class="fg"><label>Telegram Chat ID (optional)</label><input type="text" id="nu-tg" placeholder=""></div>
+    <div class="ial ial-err" id="nu-err"></div>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn btn-s" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-p" onclick="saveNewUser()">Add User</button>
+    </div>`);
+}
+async function saveNewUser(){
+  const name=document.getElementById('nu-name').value.trim();
+  const email=document.getElementById('nu-email').value.trim();
+  const role=document.getElementById('nu-role').value;
+  const pw=document.getElementById('nu-pw').value;
+  const tg=document.getElementById('nu-tg').value.trim();
+  if(!name||!email||!pw){setIal('nu-err','Name, email and password required');return;}
+  if(pw.length<8){setIal('nu-err','Password min 8 characters');return;}
+  const r=await api('addUser',{name,email,role,password:pw,telegram_chat_id:tg});
+  if(!r.success){setIal('nu-err',r.error);return;}
+  closeModal(); toast('User added ✓','ok'); loadUsers();
+}
+function showEditUserModal(userId){
+  showModal(`<div class="modal-title">Edit User</div>
+    <div class="fg"><label>New Password (leave blank to keep)</label><input type="password" id="eu-pw" placeholder="New password"></div>
+    <div class="ial ial-err" id="eu-err"></div>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn btn-s" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-warn" onclick="doResetPw('${userId}')">Reset Password</button>
+    </div>`);
+}
+async function doResetPw(userId){
+  const pw=document.getElementById('eu-pw').value;
+  if(!pw||pw.length<8){setIal('eu-err','Enter new password (min 8 chars)');return;}
+  const r=await api('resetPassword',{user_id:userId,new_password:pw});
+  if(!r.success){setIal('eu-err',r.error);return;}
+  closeModal(); toast('Password reset ✓','ok');
+}
+async function deactivateUser(userId, name){
+  if(!confirm(`Deactivate ${name}? They will not be able to log in.`)) return;
+  const r=await api('deactivateUser',{user_id:userId});
+  if(!r.success){toast(r.error,'err');return;}
+  toast('User deactivated','ok'); loadUsers();
+}
+
+// ═══════════════════════════════════════════════════
+// ADMIN — METERS
+// ═══════════════════════════════════════════════════
+async function loadAdminMeters(){
+  const r=await api('getMeters',{includeInactive:true});
+  if(!r.success){toast(r.error,'err');return;}
+  const meters=r.meters||[];
+  if(!meters.length){
+    document.getElementById('a-meters-list').innerHTML='<div class="empty"><div class="ei">📡</div><p>No meters added yet.</p></div>';
+    return;
+  }
+  const active=meters.filter(m=>m.active===true||m.active==='TRUE').length;
+  const html=`<div style="font-size:.8rem;color:var(--tx2);margin-bottom:4px">${active} active / 100 max</div>
+    <div class="pbar-wrap" style="margin-bottom:10px"><div class="pbar ${active>90?'perr':active>70?'pwarn':''}" style="width:${active}%"></div></div>`
+    +meters.map(m=>{
+      const inactive=m.active===false||m.active==='FALSE';
+      return `<div class="li">
+        <div class="li-icon" style="${inactive?'opacity:.4':''}">📡</div>
+        <div class="li-info">
+          <div class="li-name">${esc(m.name)} ${inactive?'<span class="chip cgy">Inactive</span>':''}</div>
+          <div class="li-sub">${esc(m.location)}${m.unit_no?' • '+esc(m.unit_no):''}</div>
+        </div>
+        <div class="li-acts">
+          <button class="btn btn-s btn-sm" onclick="showEditMeterModal('${esc(m.meter_id)}','${esc(m.name)}','${esc(m.location)}','${esc(m.unit_no||'')}','${esc(m.notes||'')}')">Edit</button>
+          ${!inactive?`<button class="btn btn-err btn-sm" onclick="deactivateMeter('${esc(m.meter_id)}','${esc(m.name)}')">✕</button>`:''}
+        </div>
+      </div>`;
+    }).join('');
+  document.getElementById('a-meters-list').innerHTML=html;
+}
+function showAddMeterModal(){
+  showModal(`<div class="modal-title">Add Meter</div>
+    <div class="fg"><label>Meter Name</label><input type="text" id="nm-name" placeholder="e.g. Block A Water Meter"></div>
+    <div class="fg"><label>Location</label><input type="text" id="nm-loc" placeholder="e.g. Basement B1"></div>
+    <div class="fg"><label>Unit / Reference No. (optional)</label><input type="text" id="nm-unit" placeholder="e.g. WTR-001"></div>
+    <div class="fg"><label>Notes (optional)</label><textarea id="nm-notes" placeholder="Access instructions, etc."></textarea></div>
+    <div class="ial ial-err" id="nm-err"></div>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn btn-s" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-p" onclick="saveNewMeter()">Add Meter</button>
+    </div>`);
+}
+async function saveNewMeter(){
+  const name=document.getElementById('nm-name').value.trim();
+  const loc=document.getElementById('nm-loc').value.trim();
+  const unit=document.getElementById('nm-unit').value.trim();
+  const notes=document.getElementById('nm-notes').value.trim();
+  if(!name||!loc){setIal('nm-err','Name and location required');return;}
+  const r=await api('addMeter',{name,location:loc,unit_no:unit,notes});
+  if(!r.success){setIal('nm-err',r.error);return;}
+  closeModal(); toast('Meter added ✓','ok'); loadAdminMeters();
+}
+function showEditMeterModal(id,name,loc,unit,notes){
+  showModal(`<div class="modal-title">Edit Meter</div>
+    <div class="fg"><label>Name</label><input type="text" id="em-name" value="${esc(name)}"></div>
+    <div class="fg"><label>Location</label><input type="text" id="em-loc" value="${esc(loc)}"></div>
+    <div class="fg"><label>Unit No.</label><input type="text" id="em-unit" value="${esc(unit)}"></div>
+    <div class="fg"><label>Notes</label><textarea id="em-notes">${esc(notes)}</textarea></div>
+    <div class="ial ial-err" id="em-err"></div>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn btn-s" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-p" onclick="saveEditMeter('${id}')">Save Changes</button>
+    </div>`);
+}
+async function saveEditMeter(id){
+  const r=await api('updateMeter',{meter_id:id,name:document.getElementById('em-name').value.trim(),location:document.getElementById('em-loc').value.trim(),unit_no:document.getElementById('em-unit').value.trim(),notes:document.getElementById('em-notes').value.trim()});
+  if(!r.success){setIal('em-err',r.error);return;}
+  closeModal(); toast('Meter updated ✓','ok'); loadAdminMeters();
+}
+async function deactivateMeter(id,name){
+  if(!confirm(`Deactivate meter "${name}"?`)) return;
+  const r=await api('deactivateMeter',{meter_id:id});
+  if(!r.success){toast(r.error,'err');return;}
+  toast('Meter deactivated','ok'); loadAdminMeters();
+}
+
+// ═══════════════════════════════════════════════════
+// ADMIN — CONFIG
+// ═══════════════════════════════════════════════════
+const CONFIG_LABELS = {
+  telegram_token:'Telegram Bot Token',telegram_chat_id:'Telegram Chat ID',
+  emailjs_service_id:'EmailJS Service ID',emailjs_template_id:'EmailJS Template ID',
+  emailjs_public_key:'EmailJS Public Key',gemini_api_key:'Gemini API Key',
+  anomaly_threshold_pct:'Anomaly Threshold (%)',drive_folder_name:'Drive Folder Name',
+  emailjs_sent_count:'EmailJS Sent (month)',emailjs_month:'EmailJS Month Reset'
+};
+const CONFIG_READONLY = ['emailjs_sent_count','emailjs_month','setup_complete'];
+async function loadConfig(){
+  const r=await api('getConfig');
+  if(!r.success){toast(r.error,'err');return;}
+  const cfg=r.config||{};
+  const html=`<div class="slbl">TAP A VALUE TO EDIT</div>`+
+    Object.keys(cfg).map(k=>{
+      const label=CONFIG_LABELS[k]||k;
+      const readonly=CONFIG_READONLY.includes(k);
+      return `<div class="ci" ${readonly?'':'style="cursor:pointer" onclick="editConfig(\''+k+'\',\''+esc(String(cfg[k]||''))+'\')"'}>
+        <div class="ci-key">${esc(label)}</div>
+        <div class="ci-val">${esc(String(cfg[k]||'—'))}</div>
+        ${readonly?'':'<span style="font-size:.8rem;color:var(--txm)">✎</span>'}
+      </div>`;
+    }).join('');
+  const content=document.getElementById('a-config-content');
+  content.className='pad'; content.innerHTML=html;
+}
+function editConfig(key,currentVal){
+  const label=CONFIG_LABELS[key]||key;
+  showModal(`<div class="modal-title">Edit: ${esc(label)}</div>
+    <div class="fg"><label>${esc(label)}</label><input type="text" id="cfg-val" value="${esc(currentVal)}" autocomplete="off"></div>
+    ${key.includes('key')||key.includes('token')?'<p class="fhint" style="margin-bottom:10px">⚠️ This value is sensitive. It will be masked after saving.</p>':''}
+    <div class="ial ial-err" id="cfg-err"></div>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn btn-s" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-p" onclick="saveConfig('${key}')">Save</button>
+    </div>`);
+}
+async function saveConfig(key){
+  const val=document.getElementById('cfg-val').value.trim();
+  const r=await api('updateConfig',{key,value:val});
+  if(!r.success){setIal('cfg-err',r.error);return;}
+  closeModal(); toast('Config saved ✓','ok'); loadConfig();
+}
+
+// ═══════════════════════════════════════════════════
+// ADMIN — AUDIT LOG
+// ═══════════════════════════════════════════════════
+async function loadAudit(){
+  const r=await api('getAuditLog',{limit:100});
+  if(!r.success){toast(r.error,'err');return;}
+  const logs=r.logs||[];
+  if(!logs.length){
+    document.getElementById('a-audit-content').innerHTML='<div class="empty"><div class="ei">📋</div><p>No audit entries yet.</p></div>';
+    return;
+  }
+  const html=logs.map(l=>`<div class="al-item">
+    <div class="al-act">${esc(l.action)}</div>
+    <div class="al-det">${esc(l.detail)}</div>
+    <div class="al-meta">${esc(l.user_id)} • ${fmtDate(l.timestamp)}</div>
+  </div>`).join('');
+  const content=document.getElementById('a-audit-content');
+  content.className='pad'; content.innerHTML=html;
+}
+
+// ═══════════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════════
+function renderSettings(){
+  document.getElementById('set-dark').checked = S.settings.theme==='dark';
+  document.getElementById('set-font').value = S.settings.fontSize;
+  document.getElementById('fsize-lbl').textContent = S.settings.fontSize+'px';
+  document.getElementById('set-apiurl').value = S.apiUrl;
+  document.getElementById('set-role').textContent = roleLabel(S.user?.role||'');
+  document.getElementById('set-user').textContent = S.user?.email||'';
+}
+
+// ═══════════════════════════════════════════════════
+// FILE INPUT EVENT WIRING
+// ═══════════════════════════════════════════════════
+document.getElementById('fi-cam').addEventListener('change', async(e)=>{
+  const viewBatch = document.getElementById('view-batch');
+  if(viewBatch.classList.contains('active')){
+    await handleBatchFileInput(e);
+  } else {
+    await handleFileInput(e,'cam');
+  }
+});
+document.getElementById('fi-gal').addEventListener('change', async(e)=>{
+  await handleFileInput(e,'gal');
+});
+
+// Enter key on login
+document.getElementById('l-pw').addEventListener('keypress',e=>{
+  if(e.key==='Enter') doLogin();
+});
+
+// ═══════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', initApp);
+</script>
+</body>
+</html>
