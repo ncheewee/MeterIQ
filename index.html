@@ -2454,8 +2454,12 @@ function renderAnalytics(){
       ${prevFull&&prevTotal>0?`<span style="color:var(--tx3)"> (${projTotal>prevTotal?'+':''}${((projTotal-prevTotal)/prevTotal*100).toFixed(1)}% vs last FY)</span>`:''}
     </div>`:''}`;
 
+  // ── AI Insights — rendered first so chart errors can't block them ──
+  // (insights section comes after but we render it here before chart code)
+
   // ── Main chart: side-by-side bars ─────────────────────────────────
   const mc=document.getElementById('anlMainChart');if(!mc)return;
+  try{
   const gridCol=document.body.classList.contains('light')?'rgba(0,0,0,.06)':'rgba(255,255,255,.04)';
   // Custom plugin to draw dashed border on forecast bars
   const forecastBorderPlugin={
@@ -2471,10 +2475,12 @@ function renderAnalytics(){
       ctx2.lineWidth=1.5;
       ctx2.setLineDash([4,3]);
       meta.data.forEach(bar=>{
-        if(!bar||bar.base===bar.y)return;
-        const {x,y,width,base}=bar;
-        const x1=x-width/2, y1=y, w=width, h=base-y;
-        ctx2.strokeRect(x1,y1,w,h);
+        try{
+          if(!bar||bar.base==null||bar.y==null||bar.width==null)return;
+          if(Math.abs(bar.base-bar.y)<1)return; // zero-height bar
+          const x1=bar.x-bar.width/2, y1=bar.y, w=bar.width, h=bar.base-bar.y;
+          ctx2.strokeRect(x1,y1,w,h);
+        }catch(e){}
       });
       ctx2.restore();
     }
@@ -2512,6 +2518,8 @@ function renderAnalytics(){
       }
     }
   });
+
+  }catch(chartErr){console.warn('Chart error:',chartErr);}
 
   // ── AI Insights — works from any amount of data ─────────────────
   const allRds=anlScope==='unit'?(S.activeUnit?getMR(S.activeUnit,md.type):[]):
@@ -2571,6 +2579,7 @@ function renderAnalytics(){
   document.getElementById('anlInsights').innerHTML=insightText;
 
   // ── Cumulative FY comparison chart ───────────────────────────────
+  try{
   if(anlScope==='building'){
     document.getElementById('anlMultiYearCard').style.display='';
     const mc2=document.getElementById('anlMultiChart');if(!mc2)return;
@@ -2613,6 +2622,7 @@ function renderAnalytics(){
   } else {
     document.getElementById('anlMultiYearCard').style.display='none';
   }
+  }catch(cumulErr){console.warn('Cumulative chart error:',cumulErr);}
 }
 
 function initMC(){
