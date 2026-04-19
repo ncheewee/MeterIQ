@@ -378,13 +378,13 @@ select.fi option{background:var(--sf)}
       style="margin-top:10px;width:100%;padding:13px;border-radius:var(--r);background:var(--am);border:none;font-family:'Rajdhani',sans-serif;font-size:calc(15px * var(--fs));font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#000;cursor:pointer;transition:opacity .15s"
       ontouchstart="this.style.opacity='.75'" ontouchend="this.style.opacity='1'">SIGN IN →</button>
   </div>
-  <div class="lver">v27</div>
+  <div class="lver">v28</div>
 </div>
 
 <!-- ═══ APP ═══ -->
 <div id="app">
   <div id="hdr">
-    <div class="logo">⚡ MeterIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v27</span></div>
+    <div class="logo">⚡ MeterIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v28</span></div>
     <div class="hdr-right">
       <div class="hdr-identity">
         <div class="hdr-name" id="userNameDisp"></div>
@@ -437,19 +437,17 @@ select.fi option{background:var(--sf)}
 
     <!-- HISTORY -->
     <div class="screen" id="screen-history">
-      <div class="psel-row">
-        <button class="psel" onclick="openPropPicker('history')">
-          <span class="psel-ico">🏢</span>
-          <div class="psel-body"><div class="psel-lbl">Property</div><div class="psel-val" id="pselPropH">—</div></div>
-          <span class="psel-arr">▾</span>
-        </button>
-        <button class="psel" onclick="openUnitPicker()">
-          <span class="psel-ico">📍</span>
-          <div class="psel-body"><div class="psel-lbl">Meter</div><div class="psel-val" id="pselUnitH">—</div></div>
-          <span class="psel-arr">▾</span>
-        </button>
-      </div>
-      <div class="mtabs" id="mTabsHist"></div>
+      <button class="psel" style="width:100%" onclick="openPropPicker('history')">
+        <span class="psel-ico">🏢</span>
+        <div class="psel-body"><div class="psel-lbl">Property</div><div class="psel-val" id="pselPropH">—</div></div>
+        <span class="psel-arr">▾</span>
+      </button>
+      <button class="psel" style="width:100%" onclick="openUnitPicker()">
+        <span class="psel-ico">📍</span>
+        <div class="psel-body"><div class="psel-lbl">Meter</div><div class="psel-val" id="pselUnitH">—</div></div>
+        <span class="psel-arr">▾</span>
+      </button>
+      <div id="mChipsHist" class="mchips"></div>
       <div id="histList"></div>
     </div>
 
@@ -598,7 +596,7 @@ select.fi option{background:var(--sf)}
         </div>
         <div class="si" id="btnClearData"><div><div class="slbl">Clear All</div><div class="ssub">Cannot be undone</div></div><button class="btn btd" style="padding:6px 11px;font-size:12px" onclick="clearAll()">Clear</button></div>
       </div>
-      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v27 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
+      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v28 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
     </div>
 
     <!-- ADMIN (role-gated) -->
@@ -871,10 +869,11 @@ const API={
   async call(action, body={}){
     try{
       // pushImage sends large base64 — must use POST body to avoid URL param truncation
+      // Use text/plain to avoid CORS preflight (Apps Script doesn't handle OPTIONS)
       if(action==='pushImage'){
         const res=await fetch(BACKEND_URL,{
           method:'POST',
-          headers:{'Content-Type':'application/json'},
+          headers:{'Content-Type':'text/plain'},
           body:JSON.stringify({action,token:S.session?.token||'',...body})
         });
         return await res.json();
@@ -1139,12 +1138,31 @@ async function fetchLoginUsers(){
 function populateLoginSelect(){
   const sel=document.getElementById('loginNameSelect');if(!sel)return;
   DB.get('login_users_cache').then(cached=>{
-    // If we have a cached backend list, use it exclusively (authoritative)
-    // Fall back to LOCAL_USERS only when offline (no cache)
     const source=cached?.length?cached:LOCAL_USERS.map(u=>({name:u.name,role:u.role}));
     const current=sel.value;
-    sel.innerHTML='<option value="">— Select your name —</option>'+
-      source.map(u=>`<option value="${u.name}">${u.name} · ${ROLES[u.role]||u.role}</option>`).join('');
+    // Group by role order: admin → manager → inspector
+    const groups=[
+      {role:'admin',    label:'Admins'},
+      {role:'manager',  label:'Managers'},
+      {role:'inspector',label:'Inspectors'},
+    ];
+    let html='<option value="">— Select your name —</option>';
+    groups.forEach(g=>{
+      const members=source.filter(u=>(u.role||'inspector')===g.role);
+      if(!members.length)return;
+      html+=`<optgroup label="${g.label}">`;
+      members.forEach(u=>{ html+=`<option value="${u.name}">${u.name}</option>`; });
+      html+=`</optgroup>`;
+    });
+    // Any role not in the groups above (fallback)
+    const knownRoles=['admin','manager','inspector'];
+    const others=source.filter(u=>!knownRoles.includes(u.role||'inspector'));
+    if(others.length){
+      html+=`<optgroup label="Other">`;
+      others.forEach(u=>{ html+=`<option value="${u.name}">${u.name}</option>`; });
+      html+=`</optgroup>`;
+    }
+    sel.innerHTML=html;
     if(current)sel.value=current;
   });
 }
@@ -1370,9 +1388,9 @@ function go(id){
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
   document.getElementById('screen-'+id)?.classList.add('active');
   document.querySelector(`.nb[data-s="${id}"]`)?.classList.add('active');
-  if(id==='dash'){renderMChipsDash();renderDashboard();}
+  if(id==='dash'){renderMChipsDash();renderMChipsHist();renderDashboard();}
   if(id==='analytics')setTimeout(renderAnalytics,40);
-  if(id==='history'){renderMTabs('mTabsHist','history');renderHistory();}
+  if(id==='history'){renderMChipsHist();renderHistory();}
   if(id==='settings'){}
   if(id==='admin'){switchAdminTab('users');}
 }
@@ -1382,25 +1400,36 @@ function go(id){
 // ═══════════════════════════════════════════
 function renderMChipsDash(){
   const el=document.getElementById('mChipsDash');if(!el)return;
+  renderMChipsFor(el,'dash');
+}
+function renderMChipsHist(){
+  const el=document.getElementById('mChipsHist');if(!el)return;
+  renderMChipsFor(el,'history');
+}
+function renderMChipsFor(el,screen){
   const u=S.units.find(x=>x.id===S.activeUnit);
   if(!u){el.innerHTML='';return;}
   const unitMTypes=Array.isArray(u.meters)?u.meters:(u.meters||'electricity').split(',');
   const chips=MDEFS.filter(m=>unitMTypes.includes(m.type));
   if(!chips.length){el.innerHTML='';return;}
-  // Auto-correct activeMeter if not valid for this unit
   if(!unitMTypes.includes(S.activeMeter))S.activeMeter=chips[0].type;
   el.innerHTML=chips.map(md=>`
-    <button class="mchip${S.activeMeter===md.type?' active':''}" onclick="setMeterDash('${md.type}')">
+    <button class="mchip${S.activeMeter===md.type?' active':''}" onclick="setMeterFrom('${md.type}','${screen}')">
       <span class="mchip-ico">${md.icon}</span>${md.label}
     </button>`).join('');
 }
 function setMeterDash(type){
   S.activeMeter=type;
-  renderMChipsDash();
-  renderMTabs('mTabsHist','history');
+  renderMChipsDash();renderMChipsHist();
   renderMTabs('mTabsAnal','analytics');
-  renderDashboard();
-  renderHistory();
+  renderDashboard();renderHistory();
+}
+function setMeterFrom(type,screen){
+  S.activeMeter=type;
+  renderMChipsDash();renderMChipsHist();
+  renderMTabs('mTabsAnal','analytics');
+  renderDashboard();renderHistory();
+  if(screen==='analytics')setTimeout(renderAnalytics,30);
 }
 
 // ═══════════════════════════════════════════
@@ -1540,7 +1569,27 @@ function saveR(){DB.set('readings_'+S.prop.id,S.readings);}
 // ═══════════════════════════════════════════
 function getMR(uid,type){return S.readings.filter(r=>r.unitId===uid&&r.meterType===type).sort((a,b)=>new Date(a.date+'T'+a.time)-new Date(b.date+'T'+b.time));}
 function fNum(r,dec=2){const n=parseFloat(r);return isNaN(n)?r:n.toLocaleString('en-SG',{minimumFractionDigits:dec,maximumFractionDigits:dec});}
-function fDate(d){if(!d)return'';return new Date(d+'T12:00').toLocaleDateString('en-SG',{day:'numeric',month:'short',year:'2-digit'});}
+function fDate(d){
+  if(!d)return'';
+  // Accept YYYY-MM-DD or full ISO timestamp
+  const ds=typeof d==='string'?d.slice(0,10):new Date(d).toISOString().slice(0,10);
+  const dt=new Date(ds+'T12:00');
+  return isNaN(dt)?'':dt.toLocaleDateString('en-SG',{day:'numeric',month:'short',year:'2-digit'});
+}
+function fTime(t){
+  if(!t)return'';
+  // Accept HH:MM, HH:MM:SS, or full ISO timestamp
+  let h,m;
+  if(typeof t==='string'&&t.includes('T')){
+    const dt=new Date(t);h=dt.getHours();m=dt.getMinutes();
+  } else {
+    const parts=(t||'').split(':');
+    h=parseInt(parts[0])||0;m=parseInt(parts[1])||0;
+  }
+  const ampm=h>=12?'PM':'AM';
+  const hh=h%12||12;
+  return`${hh}:${String(m).padStart(2,'0')} ${ampm}`;
+}
 function dBetween(a,b){return Math.max(0,(new Date(b)-new Date(a))/86400000);}
 
 // ═══════════════════════════════════════════
@@ -1653,7 +1702,7 @@ function renderDashboard(){
   const last=rds[rds.length-1];
   document.getElementById('dNum').textContent=fNum(last.reading,md.dec);
   document.getElementById('dUnit').textContent=md.unit+' · '+u.number+' '+md.icon+' '+md.label;
-  document.getElementById('dDate').textContent=fDate(last.date)+'  '+last.time;
+  document.getElementById('dDate').textContent=fDate(last.date)+'  '+fTime(last.time);
   const now=new Date(),ms=new Date(now.getFullYear(),now.getMonth(),1);
   const mr=rds.filter(r=>new Date(r.date)>=ms);
   if(mr.length>=2){const c=parseFloat(mr[mr.length-1].reading)-parseFloat(mr[0].reading),d=Math.max(1,dBetween(mr[0].date,mr[mr.length-1].date));document.getElementById('sMo').textContent=c.toFixed(md.dec);document.getElementById('sAv').textContent=(c/d).toFixed(md.dec);}
@@ -2286,7 +2335,7 @@ function renderHistory(){
     let cH='';
     if(prev){const c=parseFloat(r.reading)-parseFloat(prev.reading),d=Math.max(1,dBetween(prev.date,r.date));cH=`<div class="hcons"><div class="hcv ${c>=0?'cp':'cn'}">${c>=0?'+':''}${c.toFixed(md.dec)}</div><div class="hcl">${md.unit}·${d}d</div></div>`;}
     return`<div class="hi" onclick="showDetail('${r.id}')"><div class="hico">${md.icon}</div>
-      <div class="hb"><div class="hn">${u.number}${r.notes?' · '+r.notes:''}</div><div class="hr">${fNum(r.reading,md.dec)}</div><div class="hd">${fDate(r.date)} ${r.time}</div></div>${cH}</div>`;
+      <div class="hb"><div class="hn">${u.number}${r.notes?' · '+r.notes:''}</div><div class="hr">${fNum(r.reading,md.dec)}</div><div class="hd">${fDate(r.date)} ${fTime(r.time)}</div></div>${cH}</div>`;
   }).join('');
 }
 
@@ -2303,7 +2352,7 @@ function showDetail(id){
     <div style="text-align:center;color:var(--tx2);font-size:13px;margin-bottom:12px;margin-top:-4px">${md.unit}</div>
     <div class="detgrid">
       <div class="deti"><div class="detil">Date</div><div class="detiv">${fDate(r.date)}</div></div>
-      <div class="deti"><div class="detil">Time</div><div class="detiv">${r.time}</div></div>
+      <div class="deti"><div class="detil">Time</div><div class="detiv">${fTime(r.time)}</div></div>
       <div class="deti"><div class="detil">Consumption</div><div class="detiv">${cons}</div></div>
       <div class="deti"><div class="detil">Daily Avg</div><div class="detiv">${daily}</div></div>
     </div>
@@ -2420,20 +2469,37 @@ function renderAnalytics(){
     .map(([,v])=>v);
 
   // ── Forecast for remaining current FY months ──────────────────────
-  // Baseline: last 6 months of ANY data (current-FY actuals first, else prev-FY)
+  // Logic: for each future month, use the CALENDAR-MONTH AVERAGE from all history
+  // (e.g. forecast for Jul 2026 = average of all historical Julys).
+  // If the current FY has ≥3 actuals, apply a linear growth adjustment derived
+  // from the current FY's deviation vs those same calendar-month averages.
   const knownIdxs=curActuals.map((v,i)=>v!==null?i:-1).filter(i=>i>=0);
   const knownVals=knownIdxs.map(i=>curActuals[i]);
   let forecast=Array(12).fill(null);
-  // Use all recent history for baseline if current FY has < 3 months
-  const baselineVals=knownVals.length>=3 ? knownVals.slice(-6)
-    : allHistSorted.slice(-6); // fall back to last 6 months of any history
-  const recentAvg=baselineVals.length ? baselineVals.reduce((s,v)=>s+v,0)/baselineVals.length : overallAvg;
+  let _growthFactor=1;
   if(totalHistMonths>=2){
+    // Growth factor: ratio of recent actuals to their calendar-month averages
+    // Shows whether THIS year is running above or below historical norms
+    let growthFactor=1;
+    if(knownVals.length>=1){
+      const expectedFromHist=knownIdxs.map(i=>{
+        const mo=FY_MONTHS[i].mo;
+        return calMonthAvg[mo]||overallAvg;
+      });
+      const actualAvg=knownVals.reduce((s,v)=>s+v,0)/knownVals.length;
+      const expectedAvg=expectedFromHist.reduce((s,v)=>s+v,0)/expectedFromHist.length;
+      growthFactor=expectedAvg>0?actualAvg/expectedAvg:1;
+      // Dampen extreme growth factors — cap adjustment at ±40%
+      growthFactor=Math.max(0.6,Math.min(1.4,growthFactor));
+      _growthFactor=growthFactor;
+    }
     FY_MONTHS.forEach(({mo},i)=>{
       if(curActuals[i]!==null)return;
-      forecast[i]=Math.max(0,recentAvg*(seasonalShape[mo]||1));
+      const histAvgForMonth=calMonthAvg[mo]||overallAvg;
+      forecast[i]=Math.max(0,histAvgForMonth*growthFactor);
     });
   }
+
 
   // ── YTD stats ─────────────────────────────────────────────────────
   const ytdVals=curActuals.filter(v=>v!==null);
@@ -2560,6 +2626,12 @@ function renderAnalytics(){
   const trendTxt=tr?`${tr.icon} <strong>${tr.lbl}</strong> — ${tr.txt}`:'Insufficient readings for trend analysis.';
   const projPct=prevFull&&prevTotal>0?((projTotal-prevTotal)/prevTotal*100):null;
 
+  const forecastLogic=totalHistMonths>=2
+    ? `Based on ${totalHistMonths}-month history · Each future month forecast = historical average for that calendar month`+
+      (knownVals.length>=1?` × current-FY adjustment (${_growthFactor>=1?'+':''}${((_growthFactor-1)*100).toFixed(0)}% vs norm)`:'')+
+      (predVals.length>0?` · ${predVals.length} months projected`:'')
+    : 'Insufficient data for forecast';
+
   let insightText=`
     <div class="irow">
       ${tr?`<div class="ii"><div class="il">Trend</div><div class="iv" style="color:${tr.lv==='critical'?'var(--rd)':tr.lv==='high'?'var(--yl)':tr.lv==='low'?'var(--bl)':'var(--gn)'};font-size:calc(12px * var(--fs));white-space:normal;line-height:1.4">${trendTxt}</div></div>`:''}
@@ -2568,6 +2640,10 @@ function renderAnalytics(){
       ${predVals.length>0?`<div class="ii"><div class="il">Full-year forecast</div><div class="iv">${fNum(projTotal,md.dec)} ${md.unit}</div></div>`:
         totalHistMonths<2?`<div class="ii"><div class="il">Forecast</div><div class="iv" style="color:var(--tx3)">Need 2+ months of data</div></div>`:''}
       ${projPct!==null?`<div class="ii"><div class="il">vs last FY</div><div class="iv" style="color:${projPct>10?'var(--rd)':projPct<-10?'var(--bl)':'var(--gn)'}">${projPct>0?'+':''}${projPct.toFixed(1)}%</div></div>`:''}
+      <div class="ii" style="align-items:flex-start">
+        <div class="il">Forecast logic</div>
+        <div class="iv" style="font-size:calc(10px * var(--fs));color:var(--tx3);font-family:'Barlow',sans-serif;font-weight:400;letter-spacing:0;text-transform:none;text-align:right;line-height:1.5;max-width:200px">${forecastLogic}</div>
+      </div>
       <div class="ii" style="align-items:flex-start">
         <div class="il">Forecast confidence</div>
         <div class="iv" style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
@@ -2585,10 +2661,10 @@ function renderAnalytics(){
     const mc2=document.getElementById('anlMultiChart');if(!mc2)return;
 
     // Build cumulative arrays (running total Apr→Mar)
-    function cumulative(arr){
+    const cumulative=arr=>{
       let sum=0;
       return arr.map(v=>{ if(v===null)return null; sum+=v; return sum; });
-    }
+    };
     const cumPrev=cumulative(prevActuals);
     const cumCur =cumulative(curActuals);
     // Forecast projected cumulative (continues from last known actual)
@@ -2985,7 +3061,7 @@ async function generateReport(){
     <span>🔵 Low — −40%+ below avg, check meter/supply</span>
   </div>
 
-  <div class="footer">MeterIQ v27 · Smart Meter Management · ${new Date().toISOString()}</div>
+  <div class="footer">MeterIQ v28 · Smart Meter Management · ${new Date().toISOString()}</div>
   </body></html>`;
 
   closeM('mReport');
@@ -3441,8 +3517,8 @@ async function removeUnit(pid, uid){
 
 function refreshAll(){
   updateHeader();updateUSBs();
-  renderMChipsDash();
-  renderMTabs('mTabsHist','history');renderMTabs('mTabsAnal','analytics');
+  renderMChipsDash();renderMChipsHist();
+  renderMTabs('mTabsAnal','analytics');
   if(!CH.mini)initMC();
   renderDashboard();renderHistory();
 }
