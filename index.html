@@ -378,13 +378,13 @@ select.fi option{background:var(--sf)}
       style="margin-top:10px;width:100%;padding:13px;border-radius:var(--r);background:var(--am);border:none;font-family:'Rajdhani',sans-serif;font-size:calc(15px * var(--fs));font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#000;cursor:pointer;transition:opacity .15s"
       ontouchstart="this.style.opacity='.75'" ontouchend="this.style.opacity='1'">SIGN IN →</button>
   </div>
-  <div class="lver">v28</div>
+  <div class="lver">v29</div>
 </div>
 
 <!-- ═══ APP ═══ -->
 <div id="app">
   <div id="hdr">
-    <div class="logo">⚡ MeterIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v28</span></div>
+    <div class="logo">⚡ MeterIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v29</span></div>
     <div class="hdr-right">
       <div class="hdr-identity">
         <div class="hdr-name" id="userNameDisp"></div>
@@ -596,7 +596,7 @@ select.fi option{background:var(--sf)}
         </div>
         <div class="si" id="btnClearData"><div><div class="slbl">Clear All</div><div class="ssub">Cannot be undone</div></div><button class="btn btd" style="padding:6px 11px;font-size:12px" onclick="clearAll()">Clear</button></div>
       </div>
-      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v28 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
+      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v29 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
     </div>
 
     <!-- ADMIN (role-gated) -->
@@ -2334,7 +2334,12 @@ function renderHistory(){
     const idx=sorted.findIndex(x=>x.id===r.id),prev=sorted[idx-1];
     let cH='';
     if(prev){const c=parseFloat(r.reading)-parseFloat(prev.reading),d=Math.max(1,dBetween(prev.date,r.date));cH=`<div class="hcons"><div class="hcv ${c>=0?'cp':'cn'}">${c>=0?'+':''}${c.toFixed(md.dec)}</div><div class="hcl">${md.unit}·${d}d</div></div>`;}
-    return`<div class="hi" onclick="showDetail('${r.id}')"><div class="hico">${md.icon}</div>
+    // Photo: prefer local base64 thumbnail (photoData), fall back to Drive URL (imageUrl)
+    const imgSrc=r.photoData||r.imageUrl||'';
+    const icoHtml=imgSrc
+      ?`<img src="${imgSrc}" style="width:36px;height:36px;object-fit:cover;border-radius:7px;flex-shrink:0" loading="lazy">`
+      :`<div class="hico">${md.icon}</div>`;
+    return`<div class="hi" onclick="showDetail('${r.id}')">${icoHtml}
       <div class="hb"><div class="hn">${u.number}${r.notes?' · '+r.notes:''}</div><div class="hr">${fNum(r.reading,md.dec)}</div><div class="hd">${fDate(r.date)} ${fTime(r.time)}</div></div>${cH}</div>`;
   }).join('');
 }
@@ -2346,8 +2351,10 @@ function showDetail(id){
   let cons='—',daily='—';
   if(prev){const c=parseFloat(r.reading)-parseFloat(prev.reading),d=Math.max(1,dBetween(prev.date,r.date));cons=`${c.toFixed(md.dec)} ${md.unit}`;daily=`${(c/d).toFixed(md.dec)} ${md.unit}/day`;}
   const ct=r.aiConf==='high'?'tg':r.aiConf==='medium'?'ta':'tr';
+  // Photo: prefer local thumbnail (offline-safe), fall back to Drive URL
+  const detImgSrc=r.photoData||r.imageUrl||'';
   document.getElementById('detailContent').innerHTML=`<div class="mt">${md.icon} ${u.number} · ${md.label}</div>
-    ${r.photoData?`<img src="${r.photoData}" class="pthumb">`:''}
+    ${detImgSrc?`<img src="${detImgSrc}" class="pthumb" onerror="this.style.display='none'">`:''}
     <div class="detnum">${fNum(r.reading,md.dec)}</div>
     <div style="text-align:center;color:var(--tx2);font-size:13px;margin-bottom:12px;margin-top:-4px">${md.unit}</div>
     <div class="detgrid">
@@ -2593,20 +2600,24 @@ function renderAnalytics(){
   const tr=assessTrend(allRds);
 
   // ── Confidence scoring ────────────────────────────────────────────
-  // Score 0–100 based on: data volume, seasonal coverage, trend stability
-  let confScore=0;
-  const dataMonths=totalHistMonths;
-  // Data volume (0–40 pts): 12+ months = full marks
-  confScore+=Math.min(40, Math.round((dataMonths/12)*40));
-  // Seasonal coverage (0–30 pts): how many of 12 calendar months have data
+  // Three factors — answers "how trustworthy is THIS forecast?"
+  //   (1) FY Anchor   (0–50 pts) — dominant: how many current-FY months calibrate the growth factor
+  //   (2) History     (0–30 pts) — richness of seasonal shape knowledge from prior years
+  //   (3) Stability   (0–20 pts) — whether the underlying trend is well-behaved
+  // Score starts LOW (1 month FY) and grows as the FY matures with more actuals.
   const calMonthsCovered=calMonthCount.filter(c=>c>0).length;
-  confScore+=Math.round((calMonthsCovered/12)*30);
-  // Trend stability (0–30 pts): stable trends score higher
+  // (1) FY Anchor — ramps from 0 → 50 over the first 6 months of the FY
+  const fyAnchorPts=Math.min(50,Math.round((ytdMonths/6)*50));
+  // (2) Historical depth — seasonal shape (20 pts) + calendar coverage (10 pts)
+  const histPts=Math.min(20,Math.round((totalHistMonths/12)*20))+Math.min(10,Math.round((calMonthsCovered/12)*10));
+  // (3) Trend stability
+  let stabPts=10; // default when no trend data yet
   if(tr){
-    if(tr.lv==='normal')confScore+=30;
-    else if(tr.lv==='high'||tr.lv==='low')confScore+=20;
-    else confScore+=8; // critical/unstable
-  } else { confScore+=15; } // no trend data yet
+    if(tr.lv==='normal')stabPts=20;
+    else if(tr.lv==='high'||tr.lv==='low')stabPts=13;
+    else stabPts=5; // critical/unstable
+  }
+  const confScore=fyAnchorPts+histPts+stabPts;
   const confLabel=confScore>=75?'High':confScore>=45?'Medium':'Low';
   const confColor=confScore>=75?'var(--gn)':confScore>=45?'var(--yl)':'var(--rd)';
   const confDots='●'.repeat(confScore>=75?3:confScore>=45?2:1)+'○'.repeat(confScore>=75?0:confScore>=45?1:2);
@@ -2675,6 +2686,13 @@ function renderAnalytics(){
       if(v===null)return null;
       runSum+=v; return runSum;
     });
+    // Bridge: copy the last actual cumulative point into cumForecast so the
+    // dashed projected line starts exactly where the solid YTD line ends —
+    // avoids a floating gap when only a few months of the FY exist.
+    const lastCumCurIdx=cumCur.reduce((last,v,i)=>v!==null?i:last,-1);
+    if(lastCumCurIdx>=0&&lastCumCurIdx<11){
+      cumForecast[lastCumCurIdx]=cumCur[lastCumCurIdx];
+    }
 
     CH.anlMulti=new Chart(mc2.getContext('2d'),{
       type:'line',
@@ -2682,8 +2700,8 @@ function renderAnalytics(){
         labels,
         datasets:[
           {label:fyFmt(cyFY-1), data:cumPrev,    borderColor:'rgba(59,130,246,.8)',  backgroundColor:'rgba(59,130,246,.08)', fill:true, tension:.3, pointRadius:3, borderWidth:2},
-          {label:fyFmt(cyFY)+' YTD', data:cumCur, borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,.08)', fill:true, tension:.3, pointRadius:3, borderWidth:2},
-          {label:'Projected',  data:cumForecast, borderColor:'#f59e0b', backgroundColor:'transparent', borderDash:[5,4], fill:false, tension:.3, pointRadius:3, borderWidth:1.5, pointStyle:'circle'},
+          {label:fyFmt(cyFY)+' YTD', data:cumCur, borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,.08)', fill:false, tension:.3, pointRadius:4, borderWidth:2},
+          {label:'Projected',  data:cumForecast, borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,.06)', borderDash:[5,4], fill:true, tension:.3, pointRadius:3, borderWidth:1.5, pointStyle:'circle'},
         ]
       },
       options:{
@@ -3061,7 +3079,7 @@ async function generateReport(){
     <span>🔵 Low — −40%+ below avg, check meter/supply</span>
   </div>
 
-  <div class="footer">MeterIQ v28 · Smart Meter Management · ${new Date().toISOString()}</div>
+  <div class="footer">MeterIQ v29 · Smart Meter Management · ${new Date().toISOString()}</div>
   </body></html>`;
 
   closeM('mReport');
