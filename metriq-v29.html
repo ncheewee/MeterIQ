@@ -2532,8 +2532,8 @@ function renderAnalytics(){
 
   // ── Main chart: side-by-side bars ─────────────────────────────────
   const mc=document.getElementById('anlMainChart');if(!mc)return;
-  try{
   const gridCol=document.body.classList.contains('light')?'rgba(0,0,0,.06)':'rgba(255,255,255,.04)';
+  try{
   // Custom plugin to draw dashed border on forecast bars
   const forecastBorderPlugin={
     id:'forecastBorder',
@@ -2623,6 +2623,7 @@ function renderAnalytics(){
   const confDots='●'.repeat(confScore>=75?3:confScore>=45?2:1)+'○'.repeat(confScore>=75?0:confScore>=45?1:2);
 
   // ── Forecast confidence qualifiers ───────────────────────────────
+  const dataMonths=totalHistMonths; // total months of history (for qualifier messages)
   const qualifiers=[];
   if(dataMonths<3) qualifiers.push('Very limited data — only '+dataMonths+' month'+(dataMonths!==1?'s':'')+ ' available');
   else if(dataMonths<6) qualifiers.push('Limited history ('+dataMonths+' months) — forecast may be imprecise');
