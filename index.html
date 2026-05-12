@@ -441,7 +441,7 @@ select.fi option{background:var(--sf)}
       style="margin-top:10px;width:100%;padding:13px;border-radius:var(--r);background:var(--am);border:none;font-family:'Rajdhani',sans-serif;font-size:calc(15px * var(--fs));font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#000;cursor:pointer;transition:opacity .15s"
       ontouchstart="this.style.opacity='.75'" ontouchend="this.style.opacity='1'">SIGN IN →</button>
   </div>
-  <div class="lver">v34</div>
+  <div class="lver">v35</div>
 </div>
 
 <!-- ═══ APP ═══ -->
@@ -457,7 +457,7 @@ select.fi option{background:var(--sf)}
         <circle cx="50" cy="62" r="6.5" fill="var(--am)"/>
         <circle cx="50" cy="62" r="2.5" fill="var(--sf)"/>
       </svg>
-      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v34</span></div>
+      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v35</span></div>
     </div>
     <div class="hdr-right">
       <div class="hdr-identity">
@@ -483,22 +483,26 @@ select.fi option{background:var(--sf)}
         <span class="psel-arr">▾</span>
       </button>
       <div id="mChipsDash" class="mchips"></div>
+
+      <!-- Last Reading -->
       <div class="card">
-        <div class="clbl">Latest Reading</div>
+        <div class="clbl">Last Reading</div>
         <div class="dnum" id="dNum">— — —</div>
-        <div class="dunit" id="dUnit">Select a meter above</div>
+        <div class="dunit" id="dUnit" style="margin-top:5px">Select a meter above</div>
         <div class="ddate" id="dDate"></div>
       </div>
-      <div class="srow">
-        <div class="sc"><div class="clbl">This Month</div><div class="sv" id="sMo">—</div><div class="sl" id="sMoU">—</div></div>
-        <div class="sc"><div class="clbl">Daily Avg</div> <div class="sv" id="sAv">—</div><div class="sl" id="sAvU">—</div></div>
-        <div class="sc"><div class="clbl">Readings</div>  <div class="sv" id="sCt">0</div><div class="sl">total</div></div>
+
+      <!-- Expected Now -->
+      <div class="card" id="dashForecastCard" style="display:none">
+        <div class="clbl">Expected Now</div>
+        <div class="dnum" id="dForecastNum">—</div>
+        <div class="dunit" id="dForecastUnit" style="margin-top:5px"></div>
+        <div class="ddate" id="dForecastNote"></div>
       </div>
-      <div id="trendBanner"></div>
-      <div class="card">
-        <div class="stitle">Consumption Trend</div>
-        <div class="cw" style="margin-top:10px"><canvas id="miniChart"></canvas></div>
-      </div>
+
+      <!-- Hidden — kept for analytics chart init -->
+      <canvas id="miniChart" style="display:none;width:0;height:0"></canvas>
+
       <button class="fab" id="dashFAB" onclick="startCapture()"><span style="font-size:19px">📷</span> CAPTURE READING</button>
     </div>
 
@@ -681,7 +685,7 @@ select.fi option{background:var(--sf)}
         </div>
         <div class="si" id="btnClearData"><div><div class="slbl">Clear All</div><div class="ssub">Cannot be undone</div></div><button class="btn btd" style="padding:6px 11px;font-size:12px" onclick="clearAll()">Clear</button></div>
       </div>
-      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v34 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
+      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v35 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
     </div>
 
     <!-- ADMIN (role-gated) -->
@@ -1843,31 +1847,54 @@ function assessTrend(rds){
 function renderDashboard(){
   renderMChipsDash();
   const u=S.units.find(x=>x.id===S.activeUnit),md=MDEFS.find(m=>m.type===S.activeMeter);
+  const fcCard=document.getElementById('dashForecastCard');
   if(!u||!md){
-    ['dNum','dUnit','dDate','sMo','sAv'].forEach(id=>document.getElementById(id).textContent='—');
-    document.getElementById('dNum').textContent='— — —';document.getElementById('dUnit').textContent='Select a meter above';
-    document.getElementById('sCt').textContent='0';document.getElementById('trendBanner').innerHTML='';
-    updateMC([]);return;
+    document.getElementById('dNum').textContent='— — —';
+    document.getElementById('dUnit').textContent='Select a meter above';
+    document.getElementById('dDate').textContent='';
+    if(fcCard)fcCard.style.display='none';
+    return;
   }
-  const rds=getMR(u.id,md.type);document.getElementById('sCt').textContent=rds.length;
-  document.getElementById('sAvU').textContent=md.unit+'/day';document.getElementById('sMoU').textContent=md.unit;
+  const rds=getMR(u.id,md.type);
   if(!rds.length){
-    document.getElementById('dNum').textContent='— — —';document.getElementById('dUnit').textContent='No readings for '+u.number;
-    document.getElementById('dDate').textContent='';document.getElementById('sMo').textContent='—';document.getElementById('sAv').textContent='—';
-    document.getElementById('trendBanner').innerHTML='';updateMC([]);return;
+    document.getElementById('dNum').textContent='— — —';
+    document.getElementById('dUnit').textContent='No readings yet for '+u.number;
+    document.getElementById('dDate').textContent='';
+    if(fcCard)fcCard.style.display='none';
+    return;
   }
+  // ── Last Reading ─────────────────────────
   const last=rds[rds.length-1];
   document.getElementById('dNum').textContent=fNum(last.reading,md.dec);
-  document.getElementById('dUnit').textContent=md.unit+' · '+u.number+' '+md.icon+' '+md.label;
+  document.getElementById('dUnit').textContent=(u.name||u.number)+' · '+md.unit;
   document.getElementById('dDate').textContent=fDate(last.date)+'  '+fTime(last.time);
-  const now=new Date(),ms=new Date(now.getFullYear(),now.getMonth(),1);
-  const mr=rds.filter(r=>new Date(r.date)>=ms);
-  if(mr.length>=2){const c=parseFloat(mr[mr.length-1].reading)-parseFloat(mr[0].reading),d=Math.max(1,dBetween(mr[0].date,mr[mr.length-1].date));document.getElementById('sMo').textContent=c.toFixed(md.dec);document.getElementById('sAv').textContent=(c/d).toFixed(md.dec);}
-  else{document.getElementById('sMo').textContent='—';document.getElementById('sAv').textContent='—';}
-  const tr=assessTrend(rds);
-  document.getElementById('trendBanner').innerHTML=tr?`<div class="tbadge ${tr.cls}"><div class="tico">${tr.icon}</div><div><strong>${tr.lbl}</strong><br><span style="font-weight:400;font-size:calc(11px * var(--fs))">${tr.txt}</span></div></div>`:'';
-  const pts=[];for(let i=1;i<rds.length;i++){const d=Math.max(1,dBetween(rds[i-1].date,rds[i].date));pts.push({date:rds[i].date,v:(parseFloat(rds[i].reading)-parseFloat(rds[i-1].reading))/d});}
-  updateMC(pts.slice(-15));
+
+  // ── Expected Now (forecast) ──────────────
+  if(rds.length>=2&&fcCard){
+    // Average daily rate from last 6 consumption intervals
+    const recent=rds.slice(-7);
+    const rates=[];
+    for(let i=1;i<recent.length;i++){
+      const d=Math.max(1,dBetween(recent[i-1].date,recent[i].date));
+      const c=parseFloat(recent[i].reading)-parseFloat(recent[i-1].reading);
+      if(c>=0)rates.push(c/d);
+    }
+    if(rates.length){
+      const avgRate=rates.reduce((s,v)=>s+v,0)/rates.length;
+      const today=new Date().toISOString().split('T')[0];
+      const daysSince=Math.max(1,dBetween(last.date,today));
+      const forecast=parseFloat(last.reading)+avgRate*daysSince;
+      document.getElementById('dForecastNum').textContent=fNum(forecast,md.dec);
+      document.getElementById('dForecastUnit').textContent=(u.name||u.number)+' · '+md.unit;
+      document.getElementById('dForecastNote').textContent=
+        `+${fNum(avgRate*daysSince,md.dec)} estimated · ${daysSince}d since last read · ${fNum(avgRate,md.dec)} ${md.unit}/day avg`;
+      fcCard.style.display='';
+    } else {
+      fcCard.style.display='none';
+    }
+  } else if(fcCard){
+    fcCard.style.display='none';
+  }
 }
 
 // Compress image to small thumbnail for storage (~15-40KB)
@@ -3267,7 +3294,7 @@ async function generateReport(){
     <span>🔵 Low — −40%+ below avg, check meter/supply</span>
   </div>
 
-  <div class="footer">MeterIQ v34 · Smart Meter Management · ${new Date().toISOString()}</div>
+  <div class="footer">MeterIQ v35 · Smart Meter Management · ${new Date().toISOString()}</div>
   </body></html>`;
 
   closeM('mReport');
