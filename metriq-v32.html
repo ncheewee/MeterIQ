@@ -3669,12 +3669,9 @@ let tT;
 function toast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='show'+(type?' '+type:'');clearTimeout(tT);tT=setTimeout(()=>{t.className='';},2600);}
 
 // ═══════════════════════════════════════════
-//  SERVICE WORKER
+//  SERVICE WORKER — registered via sw.js (see top of file)
 // ═══════════════════════════════════════════
-if('serviceWorker' in navigator){
-  const sw=`const C='mq4-v1';self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(['/'])));self.skipWaiting();});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)));});`;
-  navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw],{type:'text/javascript'}))).catch(()=>{});
-}
+// (inline blob SW removed — conflicts with versioned sw.js)
 
 init().then(()=>{
   if(!S.session) showLoginScreen();
