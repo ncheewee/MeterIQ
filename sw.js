@@ -1,5 +1,5 @@
-// MeterIQ Service Worker — v32
-const CACHE = 'meteriq-v32';
+// MeterIQ Service Worker — v33
+const CACHE = 'meteriq-v33';
 const STATIC = ['./manifest.json', './icon.svg', './icon-maskable.svg', './icon-192.png', './icon-512.png', './icon-maskable-192.png', './icon-maskable-512.png'];
 
 // Install: cache only static assets (not HTML — that stays network-first)
