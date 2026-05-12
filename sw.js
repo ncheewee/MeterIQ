@@ -1,14 +1,16 @@
-// MeterIQ Service Worker — v30
-const CACHE = 'meteriq-v30';
-const APP_SHELL = ['./', './index.html', './manifest.json', './icon.svg'];
+// MeterIQ Service Worker — v32
+const CACHE = 'meteriq-v32';
+const STATIC = ['./manifest.json', './icon.svg', './icon-maskable.svg'];
 
+// Install: cache only static assets (not HTML — that stays network-first)
 self.addEventListener('install', e => {
   self.skipWaiting();
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(APP_SHELL).catch(() => {}))
+    caches.open(CACHE).then(c => c.addAll(STATIC).catch(() => {}))
   );
 });
 
+// Activate: delete ALL old caches, claim all clients immediately
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
@@ -19,20 +21,45 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
-  // Pass through Google Apps Script API calls and CDN resources
-  if (url.hostname !== location.hostname || url.pathname.includes('exec') || url.hostname.includes('cdnjs')) {
+
+  // Always pass through: GAS API calls, CDN, cross-origin
+  if (url.hostname !== location.hostname ||
+      url.pathname.includes('exec') ||
+      url.hostname.includes('cdnjs') ||
+      url.hostname.includes('googleapis')) {
     return;
   }
+
+  // HTML navigation requests → network-first (always get latest redirect/version)
+  if (e.request.mode === 'navigate' ||
+      url.pathname.endsWith('.html') ||
+      url.pathname === '/' ||
+      url.pathname.endsWith('/')) {
+    e.respondWith(
+      fetch(e.request)
+        .then(res => {
+          // Cache the fresh response for offline fallback
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE).then(c => c.put(e.request, clone));
+          }
+          return res;
+        })
+        .catch(() => caches.match(e.request).then(r => r || caches.match('./metriq-v32.html')))
+    );
+    return;
+  }
+
+  // Static assets → cache-first
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
       return fetch(e.request).then(res => {
         if (res.ok && e.request.method === 'GET') {
-          const clone = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
+          caches.open(CACHE).then(c => c.put(e.request, res.clone()));
         }
         return res;
-      }).catch(() => caches.match('./'));
+      }).catch(() => caches.match('./metriq-v32.html'));
     })
   );
 });
