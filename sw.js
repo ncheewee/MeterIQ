@@ -45,7 +45,7 @@ self.addEventListener('fetch', e => {
           }
           return res;
         })
-        .catch(() => caches.match(e.request).then(r => r || caches.match('./metriq-v32.html')))
+        .catch(() => caches.match(e.request).then(r => r || caches.match('././')))
     );
     return;
   }
@@ -59,7 +59,7 @@ self.addEventListener('fetch', e => {
           caches.open(CACHE).then(c => c.put(e.request, res.clone()));
         }
         return res;
-      }).catch(() => caches.match('./metriq-v32.html'));
+      }).catch(() => caches.match('././'));
     })
   );
 });
