@@ -170,7 +170,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Barlow',
 .ddate{font-family:'Share Tech Mono',monospace;font-size:calc(10px * var(--fs));color:var(--tx3);margin-top:4px}
 .card-fc{background:rgba(56,189,248,0.07);border-color:rgba(56,189,248,0.28)}
 .dnum-fc{font-family:'Share Tech Mono',monospace;font-size:calc(28px * var(--fs));color:#38bdf8;letter-spacing:2px;line-height:1;white-space:nowrap;flex-shrink:1;min-width:0}
-.num-row{display:flex;align-items:baseline;gap:6px;justify-content:center;width:100%;overflow:hidden}
+.num-row{display:flex;align-items:baseline;gap:6px;justify-content:center;width:100%}
 .srow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 .sc{background:var(--sf);border:1px solid var(--bd);border-radius:var(--rs);padding:11px}
 .sv{font-family:'Share Tech Mono',monospace;font-size:calc(18px * var(--fs));color:var(--num);margin:3px 0}
@@ -444,7 +444,7 @@ select.fi option{background:var(--sf)}
       style="margin-top:10px;width:100%;padding:13px;border-radius:var(--r);background:var(--am);border:none;font-family:'Rajdhani',sans-serif;font-size:calc(15px * var(--fs));font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#000;cursor:pointer;transition:opacity .15s"
       ontouchstart="this.style.opacity='.75'" ontouchend="this.style.opacity='1'">SIGN IN →</button>
   </div>
-  <div class="lver">v37</div>
+  <div class="lver">v38</div>
 </div>
 
 <!-- ═══ APP ═══ -->
@@ -460,7 +460,7 @@ select.fi option{background:var(--sf)}
         <circle cx="50" cy="62" r="6.5" fill="var(--am)"/>
         <circle cx="50" cy="62" r="2.5" fill="var(--sf)"/>
       </svg>
-      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v37</span></div>
+      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v38</span></div>
     </div>
     <div class="hdr-right">
       <div class="hdr-identity">
@@ -510,7 +510,20 @@ select.fi option{background:var(--sf)}
       <!-- Hidden — kept for analytics chart init -->
       <canvas id="miniChart" style="display:none;width:0;height:0"></canvas>
 
-      <button class="fab" id="dashFAB" onclick="startCapture()"><span style="font-size:19px">📷</span> CAPTURE READING</button>
+      <!-- Dashboard capture shortcuts -->
+      <input type="file" id="dashCamIn" accept="image/*" capture="environment" style="display:none" onchange="onDashPhoto(event)">
+      <input type="file" id="dashGalIn" accept="image/*" style="display:none" onchange="onDashPhoto(event)">
+      <div class="entry-modes" style="margin-top:4px">
+        <button class="entry-btn" onclick="startCaptureMode('camera')">
+          <span class="eico" style="font-size:24px">📷</span>Camera
+        </button>
+        <button class="entry-btn" onclick="startCaptureMode('gallery')">
+          <span class="eico" style="font-size:24px">🖼️</span>Gallery
+        </button>
+        <button class="entry-btn" onclick="startCaptureMode('manual')">
+          <span class="eico" style="font-size:24px">✏️</span>Manual
+        </button>
+      </div>
     </div>
 
     <!-- CAPTURE -->
@@ -692,7 +705,7 @@ select.fi option{background:var(--sf)}
         </div>
         <div class="si" id="btnClearData"><div><div class="slbl">Clear All</div><div class="ssub">Cannot be undone</div></div><button class="btn btd" style="padding:6px 11px;font-size:12px" onclick="clearAll()">Clear</button></div>
       </div>
-      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v37 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
+      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v38 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
     </div>
 
     <!-- ADMIN (role-gated) -->
@@ -1909,16 +1922,20 @@ function renderDashboard(){
   }
 }
 
-// Dynamically shrink forecast range text until it fits on one row
+// Dynamically shrink forecast range text to always leave room for the unit label
 function fitForecastText(){
   const wrap=document.getElementById('dForecastWrap');
   const num=document.getElementById('dForecastNum');
+  const unit=document.getElementById('dForecastUnit');
   if(!wrap||!num)return;
   const fsVar=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--fs')||'1');
   const maxPx=Math.round(28*fsVar);
   num.style.fontSize=maxPx+'px';
+  // Reserve unit label width + gap so it's never pushed out
+  const unitW=(unit?unit.offsetWidth:0)+8;
+  const avail=wrap.clientWidth-unitW;
   let fs=maxPx;
-  while(wrap.scrollWidth>wrap.clientWidth+1&&fs>12){fs--;num.style.fontSize=fs+'px';}
+  while(num.scrollWidth>avail&&fs>10){fs--;num.style.fontSize=fs+'px';}
 }
 
 // Compress image to small thumbnail for storage (~15-40KB)
@@ -1964,6 +1981,38 @@ function preprocess(dataUrl){
 // ═══════════════════════════════════════════
 //  CAPTURE
 // ═══════════════════════════════════════════
+// Shared cap-init logic (returns false if blocked)
+function _initCap(){
+  if(!S.units.length){toast('Add a unit first — go to Admin → Properties','err');return false;}
+  const uid=S.activeUnit||S.units[0].id;
+  const u=S.units.find(x=>x.id===uid);
+  const unitMTypes=Array.isArray(u?.meters)?u.meters:(u?.meters||'electricity').split(',');
+  const mt=unitMTypes.includes(S.activeMeter)?S.activeMeter:(unitMTypes[0]||ACTIVE_MDEFS[0].type);
+  cap={step:0,uid,mt,photo:null,extracted:null,conf:null,notes:null,confirmed:null,bbox:null,croppedPhoto:null,manualMode:false};
+  if(S.activeUnit||S.units.length===1)cap.step=1;
+  return true;
+}
+// Dashboard quick-capture buttons: Camera / Gallery / Manual
+function startCaptureMode(mode){
+  if(!_initCap())return;
+  if(mode==='manual'){cap.manualMode=true;renderStep();go('capture');return;}
+  if(mode==='camera'){document.getElementById('dashCamIn')?.click();return;}
+  if(mode==='gallery'){document.getElementById('dashGalIn')?.click();return;}
+}
+async function onDashPhoto(e){
+  const f=e.target.files[0];if(!f)return;
+  e.target.value='';// allow re-pick
+  go('capture');renderStep();
+  const reader=new FileReader();
+  reader.onload=async ev=>{
+    toast('Processing…');
+    cap.photo=await preprocess(ev.target.result);
+    cap.extracted=null;cap.bbox=null;cap.croppedPhoto=null;
+    CR.box={x:.05,y:.15,w:.9,h:.5};
+    renderStep();
+  };
+  reader.readAsDataURL(f);
+}
 function startCapture(){
   if(!S.units.length){toast('Add a unit first — go to Admin → Properties','err');return;}
   const uid=S.activeUnit||S.units[0].id;
@@ -3318,7 +3367,7 @@ async function generateReport(){
     <span>🔵 Low — −40%+ below avg, check meter/supply</span>
   </div>
 
-  <div class="footer">MeterIQ v37 · Smart Meter Management · ${new Date().toISOString()}</div>
+  <div class="footer">MeterIQ v38 · Smart Meter Management · ${new Date().toISOString()}</div>
   </body></html>`;
 
   closeM('mReport');
