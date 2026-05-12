@@ -3,7 +3,7 @@
   "name": "MeterIQ",
   "short_name": "MeterIQ",
   "description": "Smart water meter reading and analytics for property management",
-  "start_url": "./metriq-v32.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
