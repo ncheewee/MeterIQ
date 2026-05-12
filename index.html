@@ -168,8 +168,9 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Barlow',
 .dnum{font-family:'Share Tech Mono',monospace;font-size:calc(38px * var(--fs));color:var(--num);letter-spacing:3px;line-height:1}
 .dunit{font-family:'Rajdhani',sans-serif;font-size:calc(13px * var(--fs));color:var(--tx2);margin-top:4px}
 .ddate{font-family:'Share Tech Mono',monospace;font-size:calc(10px * var(--fs));color:var(--tx3);margin-top:4px}
-.card-fc{background:rgba(245,158,11,0.07);border-color:rgba(245,158,11,0.28)}
-.dnum-fc{font-family:'Share Tech Mono',monospace;font-size:calc(30px * var(--fs));color:var(--am);letter-spacing:2px;line-height:1}
+.card-fc{background:rgba(56,189,248,0.07);border-color:rgba(56,189,248,0.28)}
+.dnum-fc{font-family:'Share Tech Mono',monospace;font-size:calc(28px * var(--fs));color:#38bdf8;letter-spacing:2px;line-height:1;white-space:nowrap;flex-shrink:1;min-width:0}
+.num-row{display:flex;align-items:baseline;gap:6px;justify-content:center;width:100%;overflow:hidden}
 .srow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 .sc{background:var(--sf);border:1px solid var(--bd);border-radius:var(--rs);padding:11px}
 .sv{font-family:'Share Tech Mono',monospace;font-size:calc(18px * var(--fs));color:var(--num);margin:3px 0}
@@ -443,7 +444,7 @@ select.fi option{background:var(--sf)}
       style="margin-top:10px;width:100%;padding:13px;border-radius:var(--r);background:var(--am);border:none;font-family:'Rajdhani',sans-serif;font-size:calc(15px * var(--fs));font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#000;cursor:pointer;transition:opacity .15s"
       ontouchstart="this.style.opacity='.75'" ontouchend="this.style.opacity='1'">SIGN IN →</button>
   </div>
-  <div class="lver">v36</div>
+  <div class="lver">v37</div>
 </div>
 
 <!-- ═══ APP ═══ -->
@@ -459,7 +460,7 @@ select.fi option{background:var(--sf)}
         <circle cx="50" cy="62" r="6.5" fill="var(--am)"/>
         <circle cx="50" cy="62" r="2.5" fill="var(--sf)"/>
       </svg>
-      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v36</span></div>
+      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v37</span></div>
     </div>
     <div class="hdr-right">
       <div class="hdr-identity">
@@ -489,16 +490,20 @@ select.fi option{background:var(--sf)}
       <!-- Last Reading -->
       <div class="card" style="text-align:center">
         <div class="clbl">Last Reading</div>
-        <div class="dnum" id="dNum">— — —</div>
-        <div class="dunit" id="dUnit" style="margin-top:5px">Select a meter above</div>
-        <div class="ddate" id="dDate"></div>
+        <div class="num-row">
+          <div class="dnum" id="dNum" style="white-space:nowrap">— — —</div>
+          <div class="dunit" id="dUnit" style="margin-top:0;flex-shrink:0"></div>
+        </div>
+        <div class="ddate" id="dDate">Select a meter above</div>
       </div>
 
       <!-- Expected Now -->
       <div class="card card-fc" id="dashForecastCard" style="display:none;text-align:center">
         <div class="clbl">Expected Now</div>
-        <div class="dnum-fc" id="dForecastNum">—</div>
-        <div class="dunit" id="dForecastUnit" style="margin-top:5px"></div>
+        <div class="num-row" id="dForecastWrap">
+          <div class="dnum-fc" id="dForecastNum">—</div>
+          <div class="dunit" id="dForecastUnit" style="margin-top:0;flex-shrink:0;color:#38bdf8;opacity:0.8"></div>
+        </div>
         <div class="ddate" id="dForecastNote"></div>
       </div>
 
@@ -687,7 +692,7 @@ select.fi option{background:var(--sf)}
         </div>
         <div class="si" id="btnClearData"><div><div class="slbl">Clear All</div><div class="ssub">Cannot be undone</div></div><button class="btn btd" style="padding:6px 11px;font-size:12px" onclick="clearAll()">Clear</button></div>
       </div>
-      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v36 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
+      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v37 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
     </div>
 
     <!-- ADMIN (role-gated) -->
@@ -1852,16 +1857,16 @@ function renderDashboard(){
   const fcCard=document.getElementById('dashForecastCard');
   if(!u||!md){
     document.getElementById('dNum').textContent='— — —';
-    document.getElementById('dUnit').textContent='Select a meter above';
-    document.getElementById('dDate').textContent='';
+    document.getElementById('dUnit').textContent='';
+    document.getElementById('dDate').textContent='Select a meter above';
     if(fcCard)fcCard.style.display='none';
     return;
   }
   const rds=getMR(u.id,md.type);
   if(!rds.length){
     document.getElementById('dNum').textContent='— — —';
-    document.getElementById('dUnit').textContent='No readings yet for '+u.number;
-    document.getElementById('dDate').textContent='';
+    document.getElementById('dUnit').textContent='';
+    document.getElementById('dDate').textContent='No readings yet for '+(u.name||u.number);
     if(fcCard)fcCard.style.display='none';
     return;
   }
@@ -1895,12 +1900,25 @@ function renderDashboard(){
       document.getElementById('dForecastNote').textContent=
         `${daysSince}d since last read · avg ${fNum(avgRate,md.dec)} ${md.unit}/day`;
       fcCard.style.display='';
+      requestAnimationFrame(fitForecastText);
     } else {
       fcCard.style.display='none';
     }
   } else if(fcCard){
     fcCard.style.display='none';
   }
+}
+
+// Dynamically shrink forecast range text until it fits on one row
+function fitForecastText(){
+  const wrap=document.getElementById('dForecastWrap');
+  const num=document.getElementById('dForecastNum');
+  if(!wrap||!num)return;
+  const fsVar=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--fs')||'1');
+  const maxPx=Math.round(28*fsVar);
+  num.style.fontSize=maxPx+'px';
+  let fs=maxPx;
+  while(wrap.scrollWidth>wrap.clientWidth+1&&fs>12){fs--;num.style.fontSize=fs+'px';}
 }
 
 // Compress image to small thumbnail for storage (~15-40KB)
@@ -3300,7 +3318,7 @@ async function generateReport(){
     <span>🔵 Low — −40%+ below avg, check meter/supply</span>
   </div>
 
-  <div class="footer">MeterIQ v36 · Smart Meter Management · ${new Date().toISOString()}</div>
+  <div class="footer">MeterIQ v37 · Smart Meter Management · ${new Date().toISOString()}</div>
   </body></html>`;
 
   closeM('mReport');
