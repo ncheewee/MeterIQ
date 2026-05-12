@@ -441,7 +441,7 @@ select.fi option{background:var(--sf)}
       style="margin-top:10px;width:100%;padding:13px;border-radius:var(--r);background:var(--am);border:none;font-family:'Rajdhani',sans-serif;font-size:calc(15px * var(--fs));font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#000;cursor:pointer;transition:opacity .15s"
       ontouchstart="this.style.opacity='.75'" ontouchend="this.style.opacity='1'">SIGN IN →</button>
   </div>
-  <div class="lver">v33</div>
+  <div class="lver">v34</div>
 </div>
 
 <!-- ═══ APP ═══ -->
@@ -457,7 +457,7 @@ select.fi option{background:var(--sf)}
         <circle cx="50" cy="62" r="6.5" fill="var(--am)"/>
         <circle cx="50" cy="62" r="2.5" fill="var(--sf)"/>
       </svg>
-      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v33</span></div>
+      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v34</span></div>
     </div>
     <div class="hdr-right">
       <div class="hdr-identity">
@@ -681,7 +681,7 @@ select.fi option{background:var(--sf)}
         </div>
         <div class="si" id="btnClearData"><div><div class="slbl">Clear All</div><div class="ssub">Cannot be undone</div></div><button class="btn btd" style="padding:6px 11px;font-size:12px" onclick="clearAll()">Clear</button></div>
       </div>
-      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v33 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
+      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v34 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
     </div>
 
     <!-- ADMIN (role-gated) -->
@@ -721,22 +721,7 @@ select.fi option{background:var(--sf)}
           <div class="si"><div><div class="slbl">Last synced</div><div class="ssub" id="syncLastTime">—</div></div></div>
           <div class="si"><div><div class="slbl">Backend</div><div class="ssub" id="backendStatus">Checking…</div></div><button class="btn btg" style="padding:6px 11px;font-size:12px" onclick="testBackend()">Test</button></div>
         </div>
-        <div class="card" style="border:1px dashed var(--bd2)">
-          <div class="stitle" style="margin-bottom:4px">🧪 Test Data</div>
-          <div class="si" style="border:none;padding-top:0">
-            <div>
-              <div class="slbl">Push Test Building to Sheet</div>
-              <div class="ssub" id="testPushStatus">Pushes 🧪 Test Building + #WM-01 water readings to Google Sheets for demo</div>
-              <div id="testPushBarWrap" style="display:none;margin-top:8px">
-                <div style="background:var(--bd);border-radius:4px;height:6px;overflow:hidden">
-                  <div id="testPushBar" style="height:100%;background:var(--am);border-radius:4px;width:0%;transition:width .2s"></div>
-                </div>
-                <div id="testPushCount" style="font-family:'Share Tech Mono',monospace;font-size:calc(11px * var(--fs));color:var(--tx3);margin-top:4px"></div>
-              </div>
-            </div>
-            <button class="btn btg" style="padding:6px 11px;font-size:12px;flex-shrink:0" onclick="pushTestData()">Push</button>
-          </div>
-        </div>
+        <!-- Test Data section removed for pilot -->
       </div>
     </div>
 
@@ -785,6 +770,28 @@ select.fi option{background:var(--sf)}
 </div>
 
 <div class="ov" id="mDetail"><div class="modal"><div class="mh"></div><div id="detailContent"></div></div></div>
+
+<!-- Edit Reading Modal (admin only) -->
+<div class="ov" id="mEditReading">
+  <div class="modal"><div class="mh"></div><div class="mt">Edit Reading</div>
+    <input type="hidden" id="editRId">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="fg">
+        <div class="fl">Reading Value (<span id="editRUnitLbl"></span>)</div>
+        <input class="cinput" type="number" id="editRVal" inputmode="numeric" step="1" style="font-size:calc(22px * var(--fs))">
+      </div>
+      <div class="frow">
+        <div class="fg"><div class="fl">Date</div><input class="fi" type="date" id="editRDate"></div>
+        <div class="fg"><div class="fl">Time</div><input class="fi" type="time" id="editRTime"></div>
+      </div>
+      <div class="fg"><div class="fl">Notes (optional)</div><input class="fi ft" id="editRNotes" placeholder="e.g. post-maintenance read" maxlength="100"></div>
+      <div class="brow">
+        <button class="btn btg" onclick="closeM('mEditReading')">Cancel</button>
+        <button class="btn btp" onclick="saveEditReading()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="ov" id="mAssess">
   <div class="modal"><div class="mh"></div><div class="mt">Reading Saved ✓</div>
@@ -918,10 +925,8 @@ select.fi option{background:var(--sf)}
 // ═══════════════════════════════════════════
 //  CONSTANTS
 // ═══════════════════════════════════════════
-// PROPS is seeded from the backend on login; p_test is kept as a local-only dev/demo property.
-const PROPS=[
-  {id:'p_test',name:'Test Building',addr:'1 Test Street, S000001',icon:'🧪',pin:'1234'},
-];
+// PROPS is seeded from the backend on login.
+const PROPS=[];
 const MDEFS=[
   {type:'electricity',icon:'⚡',label:'Electricity',unit:'kWh',dec:1,hidden:true},
   {type:'water',      icon:'💧',label:'Water',       unit:'m³', dec:0,hidden:false},
@@ -2518,11 +2523,44 @@ function showDetail(id){
     ${r.notes?`<div style="margin:9px 0;padding:9px 11px;background:var(--sf2);border-radius:var(--rs);font-size:13px;color:var(--tx2)">📝 ${r.notes}</div>`:''}
     ${r.aiConf?`<div style="text-align:center;margin:7px 0"><span class="tag ${ct}">AI ${r.aiConf} confidence</span></div>`:''}
     <div style="height:11px"></div>
+    ${S.session?.user?.role==='admin'?`<button class="btn btg bfull" style="margin-bottom:8px" onclick="openEditReading('${r.id}')">✏️ Edit Reading</button>`:''}
     <button class="btn btd bfull" onclick="delReading('${r.id}')">Delete Reading</button>`;
   openM('mDetail');
 }
 function delReading(id){
   if(!confirm('Delete?'))return;S.readings=S.readings.filter(r=>r.id!==id);saveR();closeM('mDetail');renderHistory();renderDashboard();toast('Deleted');
+}
+function openEditReading(id){
+  const r=S.readings.find(x=>x.id===id);if(!r)return;
+  const md=MDEFS.find(m=>m.type===r.meterType);
+  document.getElementById('editRId').value=id;
+  document.getElementById('editRVal').value=r.reading;
+  document.getElementById('editRVal').step=md?.dec===0?'1':'0.001';
+  document.getElementById('editRVal').inputMode=md?.dec===0?'numeric':'decimal';
+  document.getElementById('editRDate').value=r.date;
+  document.getElementById('editRTime').value=r.time;
+  document.getElementById('editRNotes').value=r.notes||'';
+  document.getElementById('editRUnitLbl').textContent=md?.unit||'';
+  openM('mEditReading');
+}
+async function saveEditReading(){
+  const id=document.getElementById('editRId').value;
+  const val=document.getElementById('editRVal').value.trim();
+  const date=document.getElementById('editRDate').value;
+  const time=document.getElementById('editRTime').value;
+  const notes=document.getElementById('editRNotes').value.trim();
+  if(!val||isNaN(parseFloat(val))){toast('Enter a valid reading','err');return;}
+  if(!date||!time){toast('Date and time required','err');return;}
+  const idx=S.readings.findIndex(r=>r.id===id);if(idx<0)return;
+  const r={...S.readings[idx],reading:val,date,time,notes,editedAt:new Date().toISOString()};
+  S.readings[idx]=r;
+  saveR();
+  closeM('mEditReading');closeM('mDetail');
+  renderHistory();renderDashboard();
+  if(document.getElementById('screen-analytics').classList.contains('active'))renderAnalytics();
+  queueSync('reading',{...r,photoData:undefined});
+  setTimeout(processSyncQueue,500);
+  toast('✓ Reading updated','ok');
 }
 
 // ═══════════════════════════════════════════
@@ -3229,7 +3267,7 @@ async function generateReport(){
     <span>🔵 Low — −40%+ below avg, check meter/supply</span>
   </div>
 
-  <div class="footer">MeterIQ v33 · Smart Meter Management · ${new Date().toISOString()}</div>
+  <div class="footer">MeterIQ v34 · Smart Meter Management · ${new Date().toISOString()}</div>
   </body></html>`;
 
   closeM('mReport');
