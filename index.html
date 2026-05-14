@@ -169,6 +169,8 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Barlow',
 .dunit{font-family:'Rajdhani',sans-serif;font-size:calc(13px * var(--fs));color:var(--tx2);margin-top:4px}
 .ddate{font-family:'Share Tech Mono',monospace;font-size:calc(10px * var(--fs));color:var(--tx3);margin-top:4px}
 .card-fc{background:rgba(56,189,248,0.07);border-color:rgba(56,189,248,0.28)}
+.fb-float{position:fixed;bottom:68px;right:10px;width:34px;height:34px;background:var(--sf2);border:1px solid var(--bd);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;z-index:88;box-shadow:0 2px 8px rgba(0,0,0,.35);opacity:0.6;transition:opacity .2s;user-select:none}
+.fb-float:active{opacity:1;transform:scale(.92)}
 .dnum-fc{font-family:'Share Tech Mono',monospace;font-size:calc(28px * var(--fs));color:#38bdf8;letter-spacing:2px;line-height:1;white-space:nowrap;flex-shrink:1;min-width:0}
 .num-row{display:flex;align-items:baseline;gap:6px;justify-content:center;width:100%}
 .srow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
@@ -444,7 +446,7 @@ select.fi option{background:var(--sf)}
       style="margin-top:10px;width:100%;padding:13px;border-radius:var(--r);background:var(--am);border:none;font-family:'Rajdhani',sans-serif;font-size:calc(15px * var(--fs));font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#000;cursor:pointer;transition:opacity .15s"
       ontouchstart="this.style.opacity='.75'" ontouchend="this.style.opacity='1'">SIGN IN →</button>
   </div>
-  <div class="lver">v38</div>
+  <div class="lver">v39</div>
 </div>
 
 <!-- ═══ APP ═══ -->
@@ -460,7 +462,7 @@ select.fi option{background:var(--sf)}
         <circle cx="50" cy="62" r="6.5" fill="var(--am)"/>
         <circle cx="50" cy="62" r="2.5" fill="var(--sf)"/>
       </svg>
-      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v38</span></div>
+      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v39</span></div>
     </div>
     <div class="hdr-right">
       <div class="hdr-identity">
@@ -523,6 +525,18 @@ select.fi option{background:var(--sf)}
         <button class="entry-btn" onclick="startCaptureMode('manual')">
           <span class="eico" style="font-size:24px">✏️</span>Manual
         </button>
+      </div>
+      <!-- Inline capture area — expands below buttons, no screen navigation -->
+      <div id="inlineCap" style="display:none;margin-top:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div class="clbl" id="ilTitle"></div>
+          <button onclick="closeInlineCap()" style="background:none;border:none;color:var(--tx3);font-size:20px;cursor:pointer;line-height:1;padding:0 2px">✕</button>
+        </div>
+        <div id="ilContent"></div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn btg" id="ilBack" onclick="capBack()" style="display:none">Back</button>
+          <button class="btn btp" id="ilNext" onclick="capNext()" style="flex:1">Continue</button>
+        </div>
       </div>
     </div>
 
@@ -705,7 +719,7 @@ select.fi option{background:var(--sf)}
         </div>
         <div class="si" id="btnClearData"><div><div class="slbl">Clear All</div><div class="ssub">Cannot be undone</div></div><button class="btn btd" style="padding:6px 11px;font-size:12px" onclick="clearAll()">Clear</button></div>
       </div>
-      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v38 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
+      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v39 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
     </div>
 
     <!-- ADMIN (role-gated) -->
@@ -1981,6 +1995,58 @@ function preprocess(dataUrl){
 // ═══════════════════════════════════════════
 //  CAPTURE
 // ═══════════════════════════════════════════
+// ── Inline capture helpers ───────────────────────────────────────────────────
+// Dummy element: silently absorbs property sets so getCap() never throws
+const _nullEl=(()=>{const s={};return{style:s,get textContent(){return''},set textContent(v){},get innerHTML(){return''},set innerHTML(v){},get disabled(){return false},set disabled(v){}};})();
+
+// Route capture element lookups to either the full-screen capture elements
+// or the inline home-screen equivalents, depending on cap.inline flag
+function getCap(id){
+  if(cap.inline){
+    const m={stepTitle:'ilTitle',stepSub:'_null',stepBar:'_null',btnBack:'ilBack',btnNext:'ilNext',capContent:'ilContent'};
+    const mapped=m[id];
+    if(mapped==='_null')return _nullEl;
+    return document.getElementById(mapped)||_nullEl;
+  }
+  return document.getElementById(id)||_nullEl;
+}
+
+// Close inline capture panel and reset state
+function closeInlineCap(){
+  cap.inline=false;
+  const ic=document.getElementById('inlineCap');
+  if(ic){ic.style.display='none';document.getElementById('ilContent').innerHTML='';}
+}
+
+// ── Feedback ─────────────────────────────────────────────────────────────────
+function activeScreenName(){
+  const map={dash:'Home',capture:'Capture',history:'History',analytics:'Analytics',settings:'Settings',admin:'Admin'};
+  const active=document.querySelector('.screen.active');
+  if(!active)return'Unknown';
+  const id=(active.id||'').replace('screen-','');
+  return map[id]||id;
+}
+function openFeedback(){
+  const name=S.session?.user?.name||S.session?.user?.number||'';
+  document.getElementById('fbName').value=name;
+  document.getElementById('fbScreen').value=activeScreenName();
+  document.getElementById('fbText').value='';
+  openM('mFeedback');
+}
+async function submitFeedback(){
+  const name=document.getElementById('fbName').value.trim()||'Anonymous';
+  const screen=document.getElementById('fbScreen').value||'?';
+  const text=document.getElementById('fbText').value.trim();
+  if(!text){toast('Please enter some feedback first','err');return;}
+  const ts=new Date().toLocaleString('en-SG',{timeZone:'Asia/Singapore',dateStyle:'short',timeStyle:'short'});
+  const msg=`📝 <b>MeterIQ Pilot Feedback</b>\n👤 ${name}  |  📍 ${screen}  |  🕐 ${ts}\n\n${text}`;
+  try{
+    await sendTelegramAlert(msg);
+    toast('✓ Feedback sent — thank you!','ok');
+    closeM('mFeedback');
+  }catch(e){toast('Could not send — check Telegram settings','err');}
+}
+
 // Shared cap-init logic (returns false if blocked)
 function _initCap(){
   if(!S.units.length){toast('Add a unit first — go to Admin → Properties','err');return false;}
@@ -1993,16 +2059,21 @@ function _initCap(){
   return true;
 }
 // Dashboard quick-capture buttons: Camera / Gallery / Manual
+// These stay on the Home screen — no navigation to capture tab
 function startCaptureMode(mode){
   if(!_initCap())return;
-  if(mode==='manual'){cap.manualMode=true;renderStep();go('capture');return;}
+  cap.inline=true;
+  const ic=document.getElementById('inlineCap');
+  if(ic)ic.style.display='';
+  if(mode==='manual'){cap.manualMode=true;renderStep();return;}
   if(mode==='camera'){document.getElementById('dashCamIn')?.click();return;}
   if(mode==='gallery'){document.getElementById('dashGalIn')?.click();return;}
 }
 async function onDashPhoto(e){
   const f=e.target.files[0];if(!f)return;
-  e.target.value='';// allow re-pick
-  go('capture');renderStep();
+  e.target.value='';
+  // Stay on Home — render inline
+  renderStep();
   const reader=new FileReader();
   reader.onload=async ev=>{
     toast('Processing…');
@@ -2028,13 +2099,19 @@ function startCapture(){
 
 function renderStep(){
   const s=cap.step;
-  document.getElementById('stepTitle').textContent=STEPS[s].t;document.getElementById('stepSub').textContent=STEPS[s].s;
+  getCap('stepTitle').textContent=STEPS[s].t;getCap('stepSub').textContent=STEPS[s].s;
   let bar='';STEPS.forEach((_,i)=>{if(i>0)bar+='<div class="sline"></div>';bar+=`<div class="sdot ${i<s?'done':i===s?'cur':''}"></div>`;});
-  document.getElementById('stepBar').innerHTML=bar;
-  document.getElementById('btnBack').style.display=s===0?'none':'';
-  document.getElementById('btnNext').textContent=s===STEPS.length-1?'Save Reading':'Continue';
-  document.getElementById('btnNext').disabled=false;
-  const c=document.getElementById('capContent');
+  getCap('stepBar').innerHTML=bar;
+  getCap('btnBack').style.display=s===0?'none':'';
+  getCap('btnNext').textContent=s===STEPS.length-1?'Save Reading':'Continue';
+  getCap('btnNext').disabled=false;
+  // Restore inline button visibility when entering phases B/C
+  if(cap.inline){
+    const inNext=document.getElementById('ilNext');const inBack=document.getElementById('ilBack');
+    if(inNext)inNext.style.display='';
+    if(inBack)inBack.style.display=s===0?'none':'';
+  }
+  const c=getCap('capContent');
 
   if(s===0){
     c.innerHTML=`<div style="display:flex;flex-direction:column;gap:9px">${S.units.map(u=>{
@@ -2053,6 +2130,13 @@ function renderStep(){
 
     // ── PHASE A: no photo yet — 3 clean entry buttons ──
     if(!hp && !cap.manualMode){
+      if(cap.inline){
+        // Inline mode: options are shown above; show quiet prompt
+        c.innerHTML=`<div style="color:var(--tx3);font-size:calc(12px * var(--fs));text-align:center;padding:6px 0">Select an option above to begin</div>`;
+        getCap('btnNext').disabled=true;
+        getCap('ilNext') && (getCap('ilNext').style.display='none');
+        getCap('ilBack') && (getCap('ilBack').style.display='none');
+      } else {
       c.innerHTML=`
         <div class="phase-lbl">Step 1 of 3 — Add Photo</div>
         <div class="entry-modes">
@@ -2072,7 +2156,8 @@ function renderStep(){
           Camera / Gallery → AI extracts reading from photo<br>Manual → type reading directly
         </div>
         ${getRefCard()}`;
-      document.getElementById('btnNext').disabled=true;
+      getCap('btnNext').disabled=true;
+      }
 
     // ── PHASE B: photo loaded — crop canvas ──
     } else if(hp){
@@ -2111,8 +2196,8 @@ function renderStep(){
         </div>`;
       setTimeout(()=>initCropTool('cropCanvas'),60);
       if(cap.extracted){ setTimeout(()=>showConfirmZone(),80); }
-      document.getElementById('btnNext').disabled=true;
-      document.getElementById('btnNext').textContent='Confirm & Save';
+      getCap('btnNext').disabled=true;
+      getCap('btnNext').textContent='Confirm & Save';
 
     // ── PHASE C: manual mode ──
     } else if(cap.manualMode){
@@ -2132,8 +2217,8 @@ function renderStep(){
         </div>
         <div class="fg"><div class="fl">Notes (optional)</div><input class="fi ft" id="rNotes" placeholder="e.g. manual read…" maxlength="100"></div>
         <button class="crop-reset" style="font-size:calc(12px * var(--fs))" onclick="exitManual()">← Back to photo options</button>`;
-      document.getElementById('btnNext').disabled=false;
-      document.getElementById('btnNext').textContent='Save Reading';
+      getCap('btnNext').disabled=false;
+      getCap('btnNext').textContent='Save Reading';
     }
   }
 }
@@ -2146,7 +2231,7 @@ function showConfirmZone(){
   if(cz) cz.style.display='flex';
   if(ci) ci.value=cap.extracted||'';
   checkAnomaly(cap.extracted);
-  document.getElementById('btnNext').disabled=false;
+  getCap('btnNext').disabled=false;
 }
 
 function getRefCard(){
@@ -2292,7 +2377,7 @@ async function doExtractCropped(){
   const eb=document.getElementById('extBox');if(eb){eb.style.display='';eb.style.display='block';}
   // Reset confirm zone while extracting
   const cz=document.getElementById('confirmZone');if(cz)cz.style.display='none';
-  document.getElementById('btnNext').disabled=true;
+  getCap('btnNext').disabled=true;
   cap.croppedPhoto=getCroppedDataUrl();
   await doExtract(cap.croppedPhoto);
   if(btn)btn.disabled=false;
@@ -2406,6 +2491,14 @@ async function onPhoto(e){
   reader.readAsDataURL(f);
 }
 function capBack(){
+  if(cap.inline){
+    // If a photo or manual entry is in progress, go back to phase A
+    if(cap.step===1&&(cap.photo||cap.manualMode)){
+      cap.photo=null;cap.manualMode=false;cap.extracted=null;
+      renderStep();return;
+    }
+    closeInlineCap();return;
+  }
   if(cap.step===0){go('dash');return;}
   cap.step--;
   if(cap.step===0&&S.units.length===1){go('dash');return;}
@@ -2458,7 +2551,7 @@ Return ONLY valid JSON, no markdown:
 }
 
 async function doExtract(imageDataUrl){
-  document.getElementById('btnNext').disabled=true;
+  getCap('btnNext').disabled=true;
   const prov=S.aiProv,keys={groq:S.groqKey,openrouter:S.orKey,gemini:S.gemKey,claude:S.claKey};
   if(prov==='none'||(prov!=='none'&&!keys[prov])){showExtManual(prov==='none'?'Manual mode':'No API key — go to Settings');return;}
   const src=imageDataUrl||cap.croppedPhoto||cap.photo;
@@ -2490,7 +2583,7 @@ async function doExtract(imageDataUrl){
     } else { cap.bbox=null; }
     showExtRes();
   }catch(err){showExtErr(err.message||'Check API key');}
-  document.getElementById('btnNext').disabled=false;
+  getCap('btnNext').disabled=false;
 }
 function showExtRes(){
   const c=cap.conf,cls=c==='high'?'chi':c==='medium'?'cmd':'clo',lbl=c==='high'?'✓ High confidence':c==='medium'?'~ Medium confidence':'⚠ Low confidence — check carefully';
@@ -2498,19 +2591,19 @@ function showExtRes(){
   document.getElementById('extSpin').style.display='none';document.getElementById('extLbl').textContent='Reading extracted';
   document.getElementById('extNum').textContent=cap.extracted;document.getElementById('extNum').classList.remove('pulse');
   document.getElementById('extConf').innerHTML=`<span class="${cls}">${lbl}</span>${cap.notes?` · <span style="color:var(--tx3)">${cap.notes}</span>`:''}`;
-  document.getElementById('btnNext').disabled=false;
+  getCap('btnNext').disabled=false;
 }
 function showExtManual(msg){
   document.getElementById('extIco').textContent='✏️';document.getElementById('extSpin').style.display='none';
   document.getElementById('extLbl').textContent='Enter reading manually';document.getElementById('extNum').textContent='?';
   document.getElementById('extNum').classList.remove('pulse');document.getElementById('extConf').innerHTML=`<span style="color:var(--tx3)">${msg}</span>`;
-  cap.extracted='0';document.getElementById('btnNext').disabled=false;
+  cap.extracted='0';getCap('btnNext').disabled=false;
 }
 function showExtErr(msg){
   document.getElementById('extIco').textContent='⚠️';document.getElementById('extSpin').style.display='none';
   document.getElementById('extLbl').textContent='Extraction failed';document.getElementById('extNum').textContent='?';
   document.getElementById('extNum').classList.remove('pulse');document.getElementById('extConf').innerHTML=`<span class="clo">${msg}</span>`;
-  cap.extracted='0';cap.conf='low';document.getElementById('btnNext').disabled=false;
+  cap.extracted='0';cap.conf='low';getCap('btnNext').disabled=false;
 }
 
 async function saveReading(){
@@ -2529,7 +2622,7 @@ async function saveReading(){
   document.getElementById('assessContent').innerHTML=`<div class="anum">${fNum(r.reading,md.dec)}</div>
     <div class="acons">${md.unit} · ${md.icon} ${md.label}${cons!==null?` · +${cons} over ${days}d`:''}</div>
     ${tr?`<div class="tbadge ${tr.cls}"><div class="tico">${tr.icon}</div><div><strong>${tr.lbl}</strong><br><span style="font-weight:400;font-size:calc(11px * var(--fs))">${tr.txt}</span></div></div>`:`<div style="color:var(--tx2);font-size:calc(13px * var(--fs));padding:8px 0">✓ Saved. Trend analysis available after 5+ readings.</div>`}`;
-  toast('✓ Reading saved!','ok');go('dash');setTimeout(()=>openM('mAssess'),300);
+  toast('✓ Reading saved!','ok');if(cap.inline){closeInlineCap();renderDashboard();}else{go('dash');}setTimeout(()=>openM('mAssess'),300);
   // Queue background sync to Google Sheets (non-blocking — stays snappy)
   queueSync('reading',{...r,photoData:undefined});
   if(photoThumb){
@@ -3367,7 +3460,7 @@ async function generateReport(){
     <span>🔵 Low — −40%+ below avg, check meter/supply</span>
   </div>
 
-  <div class="footer">MeterIQ v38 · Smart Meter Management · ${new Date().toISOString()}</div>
+  <div class="footer">MeterIQ v39 · Smart Meter Management · ${new Date().toISOString()}</div>
   </body></html>`;
 
   closeM('mReport');
@@ -3854,5 +3947,23 @@ document.addEventListener('click', e=>{
   if(_lupOpen && !e.target.closest('#lupBtn') && !e.target.closest('#lupDrop')) closeLUP();
 });
 </script>
+
+<!-- Feedback float button -->
+<div class="fb-float" onclick="openFeedback()" title="Send feedback">💬</div>
+
+<!-- Feedback modal -->
+<div class="ov" id="mFeedback">
+  <div class="modal">
+    <div class="mh"></div>
+    <div class="mt">💬 Pilot Feedback</div>
+    <div class="fg"><div class="fl">Your name</div><input class="fi" id="fbName" placeholder="e.g. John"></div>
+    <div class="fg"><div class="fl">Screen</div><input class="fi" id="fbScreen" readonly style="color:var(--tx3)"></div>
+    <div class="fg"><div class="fl">What's on your mind?</div><textarea class="fi" id="fbText" rows="4" placeholder="Bug, confusion, suggestion, or anything…" style="resize:none;line-height:1.5"></textarea></div>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="btn btg" onclick="closeM('mFeedback')">Cancel</button>
+      <button class="btn btp" style="flex:1" onclick="submitFeedback()">Send ✈️</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
