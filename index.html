@@ -466,7 +466,7 @@ select.fi option{background:var(--sf)}
       style="margin-top:10px;width:100%;padding:13px;border-radius:var(--r);background:var(--am);border:none;font-family:'Rajdhani',sans-serif;font-size:calc(15px * var(--fs));font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#000;cursor:pointer;transition:opacity .15s"
       ontouchstart="this.style.opacity='.75'" ontouchend="this.style.opacity='1'">SIGN IN →</button>
   </div>
-  <div class="lver">v45</div>
+  <div class="lver">v46</div>
 </div>
 
 <!-- ═══ APP ═══ -->
@@ -482,7 +482,7 @@ select.fi option{background:var(--sf)}
         <circle cx="50" cy="62" r="6.5" fill="var(--am)"/>
         <circle cx="50" cy="62" r="2.5" fill="var(--sf)"/>
       </svg>
-      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v45</span></div>
+      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v46</span></div>
     </div>
     <div class="hdr-right">
       <div class="hdr-identity">
@@ -747,7 +747,7 @@ select.fi option{background:var(--sf)}
         </div>
         <div class="si" id="btnClearData"><div><div class="slbl">Clear All</div><div class="ssub">Cannot be undone</div></div><button class="btn btd" style="padding:6px 11px;font-size:12px" onclick="clearAll()">Clear</button></div>
       </div>
-      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v45 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
+      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v46 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
     </div>
 
     <!-- ADMIN (role-gated) -->
@@ -1558,6 +1558,11 @@ function applyRoleUI(role){
 
   // ── Nav: Admin tab (admin + manager) ──
   document.getElementById('navAdmin').style.display=(role==='admin'||role==='manager')?'':'none';
+  // ── Admin tabs: hide Sync + Feedback for manager ──
+  ['sync','feedback'].forEach(t=>{
+    const tb=document.getElementById('atab-'+t);
+    if(tb)tb.style.display=(role==='admin')?'':'none';
+  });
 
   // ── Nav: Analytics tab (hidden for inspector) ──
   const anlNav=document.getElementById('navAnalytics');
@@ -1583,10 +1588,10 @@ function applyRoleUI(role){
   const cardData=document.getElementById('setCardData');
   if(cardData)cardData.style.display=role==='inspector'?'none':'';
 
-  // ── Within Data card: Export + Clear for admin only ──
+  // ── Within Data card: Export for admin+manager; Clear for admin only ──
   const btnExport=document.getElementById('btnExportData');
   const btnClear=document.getElementById('btnClearData');
-  if(btnExport)btnExport.style.display=role==='admin'?'':'none';
+  if(btnExport)btnExport.style.display=(role==='admin'||role==='manager')?'':'none';
   if(btnClear)btnClear.style.display=role==='admin'?'':'none';
 }
 
@@ -1705,7 +1710,8 @@ function openUnitPicker(){
 function filterUP(){renderUPList(document.getElementById('upSearch').value);}
 function renderUPList(q){
   const lc=q.toLowerCase();
-  const f=S.units.filter(u=>u.number.toLowerCase().includes(lc)||(u.name||'').toLowerCase().includes(lc)||(u.location||'').toLowerCase().includes(lc));
+  const f=S.units.filter(u=>u.number.toLowerCase().includes(lc)||(u.name||'').toLowerCase().includes(lc)||(u.location||'').toLowerCase().includes(lc))
+    .sort((a,b)=>(a.location||'').localeCompare(b.location||'')||(a.name||a.number).localeCompare(b.name||b.number));
   const el=document.getElementById('upList');
   if(!f.length){
     const canAdd=S.session?.user?.role!=='inspector';
@@ -1719,7 +1725,7 @@ function renderUPList(q){
     const cur=u.id===S.activeUnit;
     return`<div class="upi${cur?' cur':''}" onclick="pickUnit('${u.id}')">
       <div style="font-size:20px;width:36px;height:36px;background:var(--sf);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0">🏢</div>
-      <div style="flex:1;min-width:0"><div class="upi-num">${u.name||u.number}${cur?' ✓':''}</div><div class="upi-desc">${u.location||''}</div><div class="upi-loc">${u.number}</div></div>
+      <div style="flex:1;min-width:0"><div class="upi-num">${u.location||u.number}${cur?' ✓':''}</div><div class="upi-desc">${u.name||''}</div><div class="upi-loc">${u.number}</div></div>
       <div class="upi-meta">${cnt} rdgs<br>${ld}</div></div>`;
   }).join('')+(S.session?.user?.role!=='inspector'?`<button class="upadd" onclick="closeM('mUnitPicker');openAddUnit(S.prop?.id)">+ Add New Meter</button>`:'');
 }
@@ -1792,7 +1798,7 @@ function updateHeader(){
 function updatePselLabels(){
   const u=S.units.find(x=>x.id===S.activeUnit);
   const pName=S.prop?S.prop.icon+' '+S.prop.name:'Select…';
-  const uName=u?(u.name||u.number):'Select…';
+  const uName=u?(u.location||u.name||u.number):'Select…';
   ['pselPropD','pselPropH','pselPropA'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=pName;});
   ['pselUnitD','pselUnitH','pselUnitA'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=uName;});
 }
@@ -3607,7 +3613,7 @@ async function generateReport(){
     <span>🔵 Low — −40%+ below avg, check meter/supply</span>
   </div>
 
-  <div class="footer">MeterIQ v45 · Smart Meter Management · ${new Date().toISOString()}</div>
+  <div class="footer">MeterIQ v46 · Smart Meter Management · ${new Date().toISOString()}</div>
   </body></html>`;
 
   closeM('mReport');
@@ -3770,10 +3776,16 @@ async function renderAdminUsers(){
     });
   }
   if(!users.length){el.innerHTML='<div style="color:var(--tx3);font-size:13px">No users</div>';return;}
+  const myRole=S.session?.user?.role;
   el.innerHTML=users.map(u=>{
     const lu=LOCAL_USERS.find(x=>x.name.toLowerCase()===u.name.toLowerCase());
-    const pinDisplay=lu?.pin||u.pin||'';
-    const uForEdit=JSON.stringify({name:u.name,role:u.role,propIds:u.propIds||[],pin:pinDisplay});
+    const rawPin=lu?.pin||u.pin||'';
+    // Manager cannot see PIN of admins or other managers
+    const canSeePin=myRole==='admin'||(myRole==='manager'&&u.role==='inspector');
+    const pinDisplay=canSeePin?rawPin:'';
+    // Manager cannot edit admins or other managers
+    const canEdit=myRole==='admin'||(myRole==='manager'&&u.role==='inspector');
+    const uForEdit=JSON.stringify({name:u.name,role:u.role,propIds:u.propIds||[],pin:rawPin});
     const roleColor=u.role==='admin'?'var(--rd)':u.role==='manager'?'var(--bl)':'var(--gn)';
     return `<div class="si" style="padding:9px 0;border-bottom:1px solid var(--bd)">
       <div style="flex:1;min-width:0">
@@ -3783,10 +3795,10 @@ async function renderAdminUsers(){
           ${pinDisplay?`<span style="font-family:'Share Tech Mono',monospace;font-size:calc(11px * var(--fs));color:var(--tx3);background:var(--sf2);padding:1px 6px;border-radius:4px;border:1px solid var(--bd)">PIN: ${pinDisplay}</span>`:''}
         </div>
       </div>
-      <div style="display:flex;gap:5px;flex-shrink:0">
+      ${canEdit?`<div style="display:flex;gap:5px;flex-shrink:0">
         <button class="btn btg" style="padding:5px 10px;font-size:11px" onclick='openEditUser(${uForEdit})'>Edit</button>
         <button class="btn btd" style="padding:5px 10px;font-size:11px" onclick="removeUser('${u.name}')">Remove</button>
-      </div>
+      </div>`:''}
     </div>`;
   }).join('');
 }
@@ -3944,11 +3956,12 @@ async function renderAdminProps(){
 }
 function renderUnitRows(pid, units){
   if(!units.length) return '<div style="color:var(--tx3);font-size:12px;padding:4px 0">No units yet</div>';
-  return units.map(u=>`
+  const sorted=[...units].sort((a,b)=>(a.location||'').localeCompare(b.location||'')||(a.name||a.number).localeCompare(b.name||b.number));
+  return sorted.map(u=>`
     <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bd)">
       <div style="flex:1;min-width:0">
-        <span class="slbl" style="font-size:calc(12px * var(--fs))">${u.name||u.number}</span>
-        <span class="ssub" style="margin-left:6px">${u.location||''}</span><span class="ssub" style="margin-left:4px;color:var(--tx3);font-family:'Share Tech Mono',monospace">${u.number}</span>
+        <span class="slbl" style="font-size:calc(12px * var(--fs))">${u.location||u.number}</span>
+        <span class="ssub" style="margin-left:6px">${u.name||''}</span><span class="ssub" style="margin-left:4px;color:var(--tx3);font-family:'Share Tech Mono',monospace">${u.number}</span>
       </div>
       <button class="btn btg" style="padding:3px 8px;font-size:10px" onclick='openEditUnit("${pid}",${JSON.stringify(u)})'>Edit</button>
       <button class="btn btd" style="padding:3px 8px;font-size:10px" onclick="removeUnit('${pid}','${u.id}')">✕</button>
