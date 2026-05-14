@@ -1327,7 +1327,11 @@ function setLoginSyncStatus(state,msg){
 async function fetchLoginUsers(){
   try{
     // getLoginUsers is a public endpoint — no token required, returns name+role only
-    const res=await API.call('getLoginUsers',{},8000);
+    // Race with 6s timeout so the loading screen never hangs on slow networks
+    const res=await Promise.race([
+      API.call('getLoginUsers',{}),
+      new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),6000))
+    ]);
     if(res?.ok&&res.users?.length){
       // Cache the backend user list — authoritative source for the dropdown
       await DB.set('login_users_cache',res.users.map(u=>({name:u.name,role:u.role})));
