@@ -169,8 +169,8 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Barlow',
 .dunit{font-family:'Rajdhani',sans-serif;font-size:calc(13px * var(--fs));color:var(--tx2);margin-top:4px}
 .ddate{font-family:'Share Tech Mono',monospace;font-size:calc(10px * var(--fs));color:var(--tx3);margin-top:4px}
 .card-fc{background:rgba(56,189,248,0.07);border-color:rgba(56,189,248,0.28)}
-.fb-float{position:fixed;bottom:68px;right:10px;width:34px;height:34px;background:var(--sf2);border:1px solid var(--bd);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;z-index:88;box-shadow:0 2px 8px rgba(0,0,0,.35);opacity:0.6;transition:opacity .2s;user-select:none}
-.fb-float:active{opacity:1;transform:scale(.92)}
+.fb-float{position:fixed;bottom:70px;right:12px;background:var(--sf2);border:1.5px solid var(--am);border-radius:20px;display:flex;align-items:center;gap:5px;padding:7px 12px 7px 10px;cursor:pointer;font-size:13px;z-index:88;box-shadow:0 3px 12px rgba(0,0,0,.4);opacity:0.92;transition:all .2s;user-select:none;font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--tx2);letter-spacing:.5px}
+.fb-float:active{opacity:1;transform:scale(.95)}
 .dnum-fc{font-family:'Share Tech Mono',monospace;font-size:calc(28px * var(--fs));color:#38bdf8;letter-spacing:2px;line-height:1;white-space:nowrap;flex-shrink:1;min-width:0}
 .num-row{display:flex;align-items:baseline;gap:6px;justify-content:center;width:100%}
 .srow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
@@ -446,7 +446,7 @@ select.fi option{background:var(--sf)}
       style="margin-top:10px;width:100%;padding:13px;border-radius:var(--r);background:var(--am);border:none;font-family:'Rajdhani',sans-serif;font-size:calc(15px * var(--fs));font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#000;cursor:pointer;transition:opacity .15s"
       ontouchstart="this.style.opacity='.75'" ontouchend="this.style.opacity='1'">SIGN IN →</button>
   </div>
-  <div class="lver">v40</div>
+  <div class="lver">v41</div>
 </div>
 
 <!-- ═══ APP ═══ -->
@@ -462,7 +462,7 @@ select.fi option{background:var(--sf)}
         <circle cx="50" cy="62" r="6.5" fill="var(--am)"/>
         <circle cx="50" cy="62" r="2.5" fill="var(--sf)"/>
       </svg>
-      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v40</span></div>
+      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v41</span></div>
     </div>
     <div class="hdr-right">
       <div class="hdr-identity">
@@ -719,7 +719,7 @@ select.fi option{background:var(--sf)}
         </div>
         <div class="si" id="btnClearData"><div><div class="slbl">Clear All</div><div class="ssub">Cannot be undone</div></div><button class="btn btd" style="padding:6px 11px;font-size:12px" onclick="clearAll()">Clear</button></div>
       </div>
-      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v40 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
+      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v41 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
     </div>
 
     <!-- ADMIN (role-gated) -->
@@ -2078,6 +2078,11 @@ function _initCap(){
   if(S.activeUnit||S.units.length===1)cap.step=1;
   return true;
 }
+// Smooth-scroll to the inline capture area after it expands
+function _scrollToInline(){
+  const ic=document.getElementById('inlineCap');
+  if(ic)setTimeout(()=>ic.scrollIntoView({behavior:'smooth',block:'nearest'}),80);
+}
 // Dashboard quick-capture buttons: Camera / Gallery / Manual
 // These stay on the Home screen — no navigation to capture tab
 function startCaptureMode(mode){
@@ -2085,7 +2090,7 @@ function startCaptureMode(mode){
   cap.inline=true;
   const ic=document.getElementById('inlineCap');
   if(ic)ic.style.display='';
-  if(mode==='manual'){cap.manualMode=true;renderStep();return;}
+  if(mode==='manual'){cap.manualMode=true;renderStep();_scrollToInline();return;}
   if(mode==='camera'){document.getElementById('dashCamIn')?.click();return;}
   if(mode==='gallery'){document.getElementById('dashGalIn')?.click();return;}
 }
@@ -2094,6 +2099,7 @@ async function onDashPhoto(e){
   e.target.value='';
   // Stay on Home — render inline
   renderStep();
+  _scrollToInline();
   const reader=new FileReader();
   reader.onload=async ev=>{
     toast('Processing…');
@@ -2214,10 +2220,10 @@ function renderStep(){
           </div>
           <div class="fg"><div class="fl">Notes (optional)</div><input class="fi ft" id="rNotes" placeholder="e.g. after shutdown…" maxlength="100"></div>
         </div>`;
+      if(cap.extracted){ showConfirmZone(); return; }
       setTimeout(()=>initCropTool('cropCanvas'),60);
-      if(cap.extracted){ setTimeout(()=>showConfirmZone(),80); }
       getCap('btnNext').disabled=true;
-      getCap('btnNext').textContent='Confirm & Save';
+      getCap('btnNext').textContent='Extract Reading';
 
     // ── PHASE C: manual mode ──
     } else if(cap.manualMode){
@@ -2244,14 +2250,43 @@ function renderStep(){
 }
 
 function showConfirmZone(){
-  const eb=document.getElementById('extBox');
-  const cz=document.getElementById('confirmZone');
-  const ci=document.getElementById('confIn');
-  if(eb) showExtRes();
-  if(cz) cz.style.display='flex';
-  if(ci) ci.value=cap.extracted||'';
+  const md=MDEFS.find(m=>m.type===cap.mt);
+  const now=new Date();
+  const confCls=cap.conf==='high'?'chi':cap.conf==='medium'?'cmd':'clo';
+  const confLbl=cap.conf==='high'?'✓ High confidence':cap.conf==='medium'?'~ Medium confidence':'⚠ Low confidence — check carefully';
+  const c=getCap('capContent');
+  // Replace entire content with clean compact result view (both inline + capture screen)
+  c.innerHTML=`
+    <div style="text-align:center;padding:10px 0 14px">
+      <div class="clbl">Extracted Reading</div>
+      <div style="display:flex;align-items:baseline;justify-content:center;gap:8px;margin:8px 0 4px">
+        <div class="dnum" id="extractedDisplay" style="font-size:calc(34px * var(--fs))">${fNum(cap.extracted,md?.dec||0)}</div>
+        <div class="dunit" style="margin-top:0">${md?.unit||''}</div>
+      </div>
+      <button onclick="(function(){var w=document.getElementById('editWrap');w.style.display=w.style.display==='none'?'':'none';})()"
+        style="background:var(--sf2);border:1px solid var(--bd);border-radius:6px;padding:3px 11px;font-size:calc(11px * var(--fs));cursor:pointer;color:var(--tx2)">✏️ Edit reading</button>
+      <div id="editWrap" style="display:none;margin-top:10px">
+        <input class="cinput" type="number" id="confIn"
+          step="${md?.dec===0?'1':'0.001'}" inputmode="${md?.dec===0?'numeric':'decimal'}"
+          value="${cap.extracted||''}"
+          oninput="document.getElementById('extractedDisplay').textContent=fNum(this.value,${md?.dec||0});checkAnomaly(this.value)">
+      </div>
+      <div id="anomalyZone" style="margin-top:6px;text-align:left"></div>
+      <div style="margin-top:8px;font-size:calc(11px * var(--fs))">
+        <span class="${confCls}">${confLbl}</span>
+        ${cap.notes?` · <span style="color:var(--tx3)">${cap.notes}</span>`:''}
+      </div>
+    </div>
+    <div class="frow">
+      <div class="fg"><div class="fl">Date</div><input class="fi" type="date" id="rDate" value="${now.toISOString().split('T')[0]}"></div>
+      <div class="fg"><div class="fl">Time</div><input class="fi" type="time" id="rTime" value="${now.toTimeString().slice(0,5)}"></div>
+    </div>
+    <div class="fg"><div class="fl">Notes (optional)</div><input class="fi ft" id="rNotes" placeholder="e.g. after shutdown…" maxlength="100"></div>`;
   checkAnomaly(cap.extracted);
   getCap('btnNext').disabled=false;
+  getCap('btnNext').textContent='Save Reading';
+  // In inline mode, also scroll so result is in view
+  if(cap.inline) _scrollToInline();
 }
 
 function getRefCard(){
@@ -2606,12 +2641,8 @@ async function doExtract(imageDataUrl){
   getCap('btnNext').disabled=false;
 }
 function showExtRes(){
-  const c=cap.conf,cls=c==='high'?'chi':c==='medium'?'cmd':'clo',lbl=c==='high'?'✓ High confidence':c==='medium'?'~ Medium confidence':'⚠ Low confidence — check carefully';
-  document.getElementById('extIco').textContent=c==='high'?'✅':c==='medium'?'⚡':'⚠️';
-  document.getElementById('extSpin').style.display='none';document.getElementById('extLbl').textContent='Reading extracted';
-  document.getElementById('extNum').textContent=cap.extracted;document.getElementById('extNum').classList.remove('pulse');
-  document.getElementById('extConf').innerHTML=`<span class="${cls}">${lbl}</span>${cap.notes?` · <span style="color:var(--tx3)">${cap.notes}</span>`:''}`;
-  getCap('btnNext').disabled=false;
+  // Always use the new compact confirm view (works inline + capture screen)
+  showConfirmZone();
 }
 function showExtManual(msg){
   document.getElementById('extIco').textContent='✏️';document.getElementById('extSpin').style.display='none';
@@ -3512,7 +3543,7 @@ async function generateReport(){
     <span>🔵 Low — −40%+ below avg, check meter/supply</span>
   </div>
 
-  <div class="footer">MeterIQ v40 · Smart Meter Management · ${new Date().toISOString()}</div>
+  <div class="footer">MeterIQ v41 · Smart Meter Management · ${new Date().toISOString()}</div>
   </body></html>`;
 
   closeM('mReport');
@@ -4004,7 +4035,7 @@ document.addEventListener('click', e=>{
 </script>
 
 <!-- Feedback float button -->
-<div class="fb-float" onclick="openFeedback()" title="Send feedback">💬</div>
+<div class="fb-float" onclick="openFeedback()" title="Send feedback"><span>💬</span> Feedback</div>
 
 <!-- Feedback modal -->
 <div class="ov" id="mFeedback">
