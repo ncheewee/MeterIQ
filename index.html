@@ -446,7 +446,7 @@ select.fi option{background:var(--sf)}
       style="margin-top:10px;width:100%;padding:13px;border-radius:var(--r);background:var(--am);border:none;font-family:'Rajdhani',sans-serif;font-size:calc(15px * var(--fs));font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#000;cursor:pointer;transition:opacity .15s"
       ontouchstart="this.style.opacity='.75'" ontouchend="this.style.opacity='1'">SIGN IN →</button>
   </div>
-  <div class="lver">v39</div>
+  <div class="lver">v40</div>
 </div>
 
 <!-- ═══ APP ═══ -->
@@ -462,7 +462,7 @@ select.fi option{background:var(--sf)}
         <circle cx="50" cy="62" r="6.5" fill="var(--am)"/>
         <circle cx="50" cy="62" r="2.5" fill="var(--sf)"/>
       </svg>
-      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v39</span></div>
+      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v40</span></div>
     </div>
     <div class="hdr-right">
       <div class="hdr-identity">
@@ -719,7 +719,7 @@ select.fi option{background:var(--sf)}
         </div>
         <div class="si" id="btnClearData"><div><div class="slbl">Clear All</div><div class="ssub">Cannot be undone</div></div><button class="btn btd" style="padding:6px 11px;font-size:12px" onclick="clearAll()">Clear</button></div>
       </div>
-      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v39 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
+      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v40 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
     </div>
 
     <!-- ADMIN (role-gated) -->
@@ -729,6 +729,7 @@ select.fi option{background:var(--sf)}
         <button class="mtab active" id="atab-users"  onclick="switchAdminTab('users')" ><span>👥</span>Users</button>
         <button class="mtab"        id="atab-props"  onclick="switchAdminTab('props')" ><span>🏢</span>Properties</button>
         <button class="mtab"        id="atab-sync"   onclick="switchAdminTab('sync')"  ><span>☁️</span>Sync</button>
+        <button class="mtab"        id="atab-feedback" onclick="switchAdminTab('feedback')"><span>💬</span>Feedback</button>
       </div>
 
       <!-- Users tab -->
@@ -749,6 +750,15 @@ select.fi option{background:var(--sf)}
           <div style="height:9px"></div>
           <button class="btn btg wf" onclick="openAddProp()">+ Add Property</button>
         </div>
+      </div>
+
+      <!-- Feedback tab (hidden by default) -->
+      <div id="adminTab-feedback" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div class="stitle">💬 Pilot Feedback</div>
+          <button class="btn btg" style="padding:5px 10px;font-size:11px" onclick="loadFeedbackTab()">↺ Refresh</button>
+        </div>
+        <div id="feedbackList"><div style="color:var(--tx3);font-size:13px;text-align:center;padding:20px">Loading…</div></div>
       </div>
 
       <!-- Sync tab (hidden by default) -->
@@ -1041,7 +1051,7 @@ const DB={
 let S={
   prop:null,units:[],readings:[],activeUnit:null,activeMeter:'electricity',
   aiProv:'groq',groqKey:'',orKey:'',gemKey:'',claKey:'',dark:true,fs:1,
-  tgToken:'8619143537:AAE0tmCRMFrkkxwChtHwEqw1CBj0sU8EQcE',
+  tgToken:'8771320341:AAEmA-7TgxmljzX71zyDrxCXJb_cQCvCXVE',
   tgChatId:'1012649171',
   alertCfg:{onSave:false,onHigh:true,onCritical:true,onGradRise:false,onGradFall:false,onLow:false},
   backendUrl:BACKEND_URL,
@@ -2038,13 +2048,23 @@ async function submitFeedback(){
   const screen=document.getElementById('fbScreen').value||'?';
   const text=document.getElementById('fbText').value.trim();
   if(!text){toast('Please enter some feedback first','err');return;}
-  const ts=new Date().toLocaleString('en-SG',{timeZone:'Asia/Singapore',dateStyle:'short',timeStyle:'short'});
-  const msg=`📝 <b>MeterIQ Pilot Feedback</b>\n👤 ${name}  |  📍 ${screen}  |  🕐 ${ts}\n\n${text}`;
-  try{
-    await sendTelegramAlert(msg);
-    toast('✓ Feedback sent — thank you!','ok');
-    closeM('mFeedback');
-  }catch(e){toast('Could not send — check Telegram settings','err');}
+  const now=new Date();
+  const tsFmt=now.toLocaleString('en-SG',{timeZone:'Asia/Singapore',dateStyle:'short',timeStyle:'short'});
+  const tsIso=now.toISOString();
+  const appVer=document.querySelector('.lver')?.textContent||'?';
+  // Telegram notification
+  const msg=`📝 <b>MeterIQ Pilot Feedback</b>\n👤 ${name}  |  📍 ${screen}  |  🕐 ${tsFmt}\n\n${text}`;
+  try{ await sendTelegramAlert(msg); }catch(e){ console.warn('TG feedback failed',e); }
+  // Backend storage
+  if(S.backendUrl&&S.session?.token!=='offline'){
+    try{
+      await API.call('saveFeedback',{feedback:{
+        id:'fb_'+Date.now(),user:name,screen,text,ts:tsIso,ver:appVer
+      }});
+    }catch(e){ console.warn('Backend feedback save failed',e); }
+  }
+  toast('✓ Feedback sent — thank you!','ok');
+  closeM('mFeedback');
 }
 
 // Shared cap-init logic (returns false if blocked)
@@ -3153,6 +3173,38 @@ async function testTelegram(){
     else toast('Telegram: '+d.description,'err');
   }catch(e){toast('Error: '+e.message,'err');}
 }
+async function loadFeedbackTab(){
+  const el=document.getElementById('feedbackList');
+  if(!el)return;
+  el.innerHTML='<div style="color:var(--tx3);font-size:13px;text-align:center;padding:20px">Loading…</div>';
+  if(!S.backendUrl||S.session?.token==='offline'){
+    el.innerHTML='<div style="color:var(--tx3);font-size:13px;padding:12px">Backend not connected.</div>';return;
+  }
+  try{
+    const res=await API.call('getFeedback',{});
+    if(!res?.ok||!res.feedback?.length){
+      el.innerHTML='<div style="color:var(--tx3);font-size:13px;text-align:center;padding:20px">No feedback yet.</div>';return;
+    }
+    const items=[...res.feedback].reverse(); // newest first
+    el.innerHTML=items.map(fb=>{
+      const d=fb.ts?new Date(fb.ts).toLocaleString('en-SG',{timeZone:'Asia/Singapore',dateStyle:'short',timeStyle:'short'}):fb.ts||'—';
+      return`<div class="card" style="margin-bottom:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:calc(13px * var(--fs))">${fb.user||'—'}</div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="font-size:calc(10px * var(--fs));background:var(--sf2);border:1px solid var(--bd);border-radius:4px;padding:1px 6px;color:var(--tx3)">${fb.screen||'?'}</span>
+            <span style="font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));color:var(--tx3)">${fb.ver||''}</span>
+          </div>
+        </div>
+        <div style="font-size:calc(13px * var(--fs));color:var(--tx);line-height:1.5;margin-bottom:6px">${fb.text||''}</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));color:var(--tx3)">${d}</div>
+      </div>`;
+    }).join('');
+  }catch(e){
+    el.innerHTML=`<div style="color:var(--tx3);font-size:13px;padding:12px">Error: ${e.message}</div>`;
+  }
+}
+
 async function sendTelegramAlert(msg){
   if(!S.tgToken||!S.tgChatId)return;
   try{
@@ -3460,7 +3512,7 @@ async function generateReport(){
     <span>🔵 Low — −40%+ below avg, check meter/supply</span>
   </div>
 
-  <div class="footer">MeterIQ v39 · Smart Meter Management · ${new Date().toISOString()}</div>
+  <div class="footer">MeterIQ v40 · Smart Meter Management · ${new Date().toISOString()}</div>
   </body></html>`;
 
   closeM('mReport');
@@ -3588,13 +3640,16 @@ async function pushTestData(){
 //  ADMIN — tabbed CRUD
 // ═══════════════════════════════════════════
 function switchAdminTab(tab){
-  ['users','props','sync'].forEach(t=>{
-    document.getElementById('atab-'+t).classList.toggle('active',t===tab);
-    document.getElementById('adminTab-'+t).style.display=t===tab?'':'none';
+  ['users','props','sync','feedback'].forEach(t=>{
+    const tb=document.getElementById('atab-'+t);
+    const td=document.getElementById('adminTab-'+t);
+    if(tb)tb.classList.toggle('active',t===tab);
+    if(td)td.style.display=t===tab?'':'none';
   });
-  if(tab==='users') renderAdminUsers();
-  if(tab==='props') renderAdminProps();
-  if(tab==='sync')  updateSyncStatus();
+  if(tab==='users')    renderAdminUsers();
+  if(tab==='props')    renderAdminProps();
+  if(tab==='sync')     updateSyncStatus();
+  if(tab==='feedback') loadFeedbackTab();
 }
 
 async function renderAdminScreen(){
