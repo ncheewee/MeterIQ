@@ -209,7 +209,7 @@ function pushImage(user, body) {
   if (!imageBase64 || !readingId) return { ok: false, error: 'Image data required' };
 
   try {
-    const folder = getOrCreateNestedFolder(propName || propId, meterLabel || meterType || 'meter');
+    const folder = getOrCreateNestedFolder(propName || propId);
 
     const unitPart  = [unitNumber, unitDesc].filter(Boolean).join(' ');
     const meterPart = (meterType || 'meter').toLowerCase();
@@ -220,7 +220,7 @@ function pushImage(user, body) {
     const existing = folder.getFilesByName(filename);
     if (existing.hasNext()) {
       const existingFile = existing.next();
-      const url = `https://drive.google.com/uc?id=${existingFile.getId()}`;
+      const url = `https://drive.google.com/thumbnail?id=${existingFile.getId()}&sz=w800`;
       const rdSheet = getSheet(SHEETS.READINGS);
       const idx = findRow(rdSheet, readingId, 0);
       if (idx >= 0) {
@@ -238,7 +238,7 @@ function pushImage(user, body) {
     const file = folder.createFile(blob);
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
-    const url = `https://drive.google.com/uc?id=${file.getId()}`;
+    const url = `https://drive.google.com/thumbnail?id=${file.getId()}&sz=w800`;
     const rdSheet = getSheet(SHEETS.READINGS);
     const idx = findRow(rdSheet, readingId, 0);
     if (idx >= 0) rdSheet.getRange(idx + 1, 9).setValue(url);
@@ -262,7 +262,7 @@ function formatDriveDateShort(dateStr) {
   } catch(e) { return dateStr.replace(/-/g,''); }
 }
 
-function getOrCreateNestedFolder(propName, meterType) {
+function getOrCreateNestedFolder(propName) {
   const root = CONFIG.DRIVE_FOLDER_ID
     ? DriveApp.getFolderById(CONFIG.DRIVE_FOLDER_ID)
     : DriveApp.getRootFolder();
@@ -272,9 +272,9 @@ function getOrCreateNestedFolder(propName, meterType) {
     return iter.hasNext() ? iter.next() : parent.createFolder(name);
   }
 
-  const appFolder  = getOrCreate(root, 'MeterIQ');
-  const propFolder = getOrCreate(appFolder, propName || 'Unknown Property');
-  return getOrCreate(propFolder, meterType || 'meter');
+  // Structure: MeterIQ / {Property Name} — all meter photos go in one folder per property
+  const appFolder = getOrCreate(root, 'MeterIQ');
+  return getOrCreate(appFolder, propName || 'Unknown Property');
 }
 
 // ── FEEDBACK ────────────────────────────────────────────────────────
