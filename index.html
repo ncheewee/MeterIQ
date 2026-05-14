@@ -175,7 +175,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Barlow',
 .dunit{font-family:'Rajdhani',sans-serif;font-size:calc(13px * var(--fs));color:var(--tx2);margin-top:4px}
 .ddate{font-family:'Share Tech Mono',monospace;font-size:calc(10px * var(--fs));color:var(--tx3);margin-top:4px}
 .card-fc{background:rgba(56,189,248,0.07);border-color:rgba(56,189,248,0.28)}
-.fb-float{position:fixed;bottom:70px;right:12px;background:var(--sf2);border:1.5px solid var(--am);border-radius:20px;display:flex;align-items:center;gap:5px;padding:7px 12px 7px 10px;cursor:pointer;font-size:13px;z-index:88;box-shadow:0 3px 12px rgba(0,0,0,.4);opacity:0.92;transition:all .2s;user-select:none;font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--tx2);letter-spacing:.5px}
+.fb-float{position:fixed;bottom:70px;right:12px;background:var(--sf2);border:1.5px solid var(--bd2);border-radius:20px;display:flex;align-items:center;gap:5px;padding:7px 12px 7px 10px;cursor:pointer;font-size:13px;z-index:88;box-shadow:0 3px 12px rgba(0,0,0,.4);opacity:0.92;transition:all .2s;user-select:none;font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--tx2);letter-spacing:.5px}
 .fb-float:active{opacity:1;transform:scale(.95)}
 .dnum-fc{font-family:'Share Tech Mono',monospace;font-size:calc(28px * var(--fs));color:#38bdf8;letter-spacing:2px;line-height:1;white-space:nowrap;flex-shrink:1;min-width:0}
 .num-row{display:flex;align-items:baseline;gap:6px;justify-content:center;width:100%}
@@ -466,7 +466,7 @@ select.fi option{background:var(--sf)}
       style="margin-top:10px;width:100%;padding:13px;border-radius:var(--r);background:var(--am);border:none;font-family:'Rajdhani',sans-serif;font-size:calc(15px * var(--fs));font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#000;cursor:pointer;transition:opacity .15s"
       ontouchstart="this.style.opacity='.75'" ontouchend="this.style.opacity='1'">SIGN IN →</button>
   </div>
-  <div class="lver">v46</div>
+  <div class="lver">v47</div>
 </div>
 
 <!-- ═══ APP ═══ -->
@@ -482,7 +482,7 @@ select.fi option{background:var(--sf)}
         <circle cx="50" cy="62" r="6.5" fill="var(--am)"/>
         <circle cx="50" cy="62" r="2.5" fill="var(--sf)"/>
       </svg>
-      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v46</span></div>
+      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v47</span></div>
     </div>
     <div class="hdr-right">
       <div class="hdr-identity">
@@ -747,7 +747,7 @@ select.fi option{background:var(--sf)}
         </div>
         <div class="si" id="btnClearData"><div><div class="slbl">Clear All</div><div class="ssub">Cannot be undone</div></div><button class="btn btd" style="padding:6px 11px;font-size:12px" onclick="clearAll()">Clear</button></div>
       </div>
-      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v46 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
+      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v47 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
     </div>
 
     <!-- ADMIN (role-gated) -->
@@ -1350,9 +1350,9 @@ function populateLoginSelect(){
   DB.get('login_users_cache').then(cached=>{
     const source=cached?.length?cached:LOCAL_USERS.map(u=>({name:u.name,role:u.role}));
     const groups=[
-      {role:'admin',    label:'Admins',     icon:'🔑'},
-      {role:'manager',  label:'Managers',   icon:'📊'},
       {role:'inspector',label:'Inspectors', icon:'🔍'},
+      {role:'manager',  label:'Managers',   icon:'📊'},
+      {role:'admin',    label:'Admins',     icon:'🔑'},
     ];
     let html='';
     groups.forEach(g=>{
@@ -3613,7 +3613,7 @@ async function generateReport(){
     <span>🔵 Low — −40%+ below avg, check meter/supply</span>
   </div>
 
-  <div class="footer">MeterIQ v46 · Smart Meter Management · ${new Date().toISOString()}</div>
+  <div class="footer">MeterIQ v47 · Smart Meter Management · ${new Date().toISOString()}</div>
   </body></html>`;
 
   closeM('mReport');
@@ -4110,9 +4110,14 @@ init().then(()=>{
 // Push a dummy history entry so popstate fires before the OS exits the PWA
 history.pushState({miq:true},'','');
 let _backPressedAt=0;
+let _backHandling=false;
 window.addEventListener('popstate',()=>{
   // Re-push so we always have somewhere to go
   history.pushState({miq:true},'','');
+  // Debounce: ignore rapid double-fires (some Android versions fire popstate twice per gesture)
+  if(_backHandling)return;
+  _backHandling=true;
+  setTimeout(()=>{_backHandling=false;},400);
   // 1) Close any open modal
   const openOv=document.querySelector('.ov.open');
   if(openOv){closeM(openOv.id);return;}
