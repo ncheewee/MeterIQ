@@ -218,7 +218,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Barlow',
 
 /* ── CROP TOOL ── */
 .crop-wrap{position:relative;border-radius:var(--rs);overflow:hidden;border:1px solid var(--bd);background:#000;touch-action:none;cursor:crosshair}
-.crop-wrap canvas{display:block;width:100%;max-height:52vw;object-fit:contain;touch-action:none;cursor:crosshair}
+.crop-wrap canvas{display:block;width:100%;object-fit:contain;touch-action:none;cursor:crosshair}
 .crop-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .crop-reset{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:var(--rs);border:1px solid var(--bd);background:var(--sf2);font-family:'Rajdhani',sans-serif;font-size:calc(13px * var(--fs));font-weight:600;color:var(--tx2);cursor:pointer}
 .crop-extract{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:var(--rs);border:none;background:var(--am);font-family:'Rajdhani',sans-serif;font-size:calc(13px * var(--fs));font-weight:700;color:#000;cursor:pointer;letter-spacing:.5px}
@@ -466,7 +466,7 @@ select.fi option{background:var(--sf)}
       style="margin-top:10px;width:100%;padding:13px;border-radius:var(--r);background:var(--am);border:none;font-family:'Rajdhani',sans-serif;font-size:calc(15px * var(--fs));font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#000;cursor:pointer;transition:opacity .15s"
       ontouchstart="this.style.opacity='.75'" ontouchend="this.style.opacity='1'">SIGN IN →</button>
   </div>
-  <div class="lver">v43</div>
+  <div class="lver">v44</div>
 </div>
 
 <!-- ═══ APP ═══ -->
@@ -482,7 +482,7 @@ select.fi option{background:var(--sf)}
         <circle cx="50" cy="62" r="6.5" fill="var(--am)"/>
         <circle cx="50" cy="62" r="2.5" fill="var(--sf)"/>
       </svg>
-      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v43</span></div>
+      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v44</span></div>
     </div>
     <div class="hdr-right">
       <div class="hdr-identity">
@@ -548,11 +548,6 @@ select.fi option{background:var(--sf)}
       </div>
       <!-- Inline capture area — expands below buttons, no screen navigation -->
       <div id="inlineCap" style="display:none;margin-top:4px;border-top:2.5px solid var(--am);padding-top:10px">
-        <!-- Mode bar: shows which button is active, links visually via top border -->
-        <div id="ilModeBar" style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-          <span id="ilModeIco" style="font-size:18px">📷</span>
-          <span id="ilModeLabel" style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:calc(12px * var(--fs));letter-spacing:2px;color:var(--am);text-transform:uppercase"></span>
-        </div>
         <div id="ilContent"></div>
         <div style="margin-top:12px;display:flex;justify-content:center">
           <button class="btn btg" id="ilBack" onclick="capBack()" style="display:none">Back</button>
@@ -740,7 +735,7 @@ select.fi option{background:var(--sf)}
         </div>
         <div class="si" id="btnClearData"><div><div class="slbl">Clear All</div><div class="ssub">Cannot be undone</div></div><button class="btn btd" style="padding:6px 11px;font-size:12px" onclick="clearAll()">Clear</button></div>
       </div>
-      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v43 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
+      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v44 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
     </div>
 
     <!-- ADMIN (role-gated) -->
@@ -2118,11 +2113,6 @@ function startCaptureMode(mode){
   cap.captureMode=mode;
   const ic=document.getElementById('inlineCap');
   if(ic)ic.style.display='';
-  // Update mode bar
-  const mInfo={camera:{ico:'📷',lbl:'Camera'},gallery:{ico:'🖼️',lbl:'Gallery'},manual:{ico:'✏️',lbl:'Manual'}};
-  const mi=mInfo[mode]||mInfo.manual;
-  const ico=document.getElementById('ilModeIco'),lbl=document.getElementById('ilModeLabel');
-  if(ico)ico.textContent=mi.ico; if(lbl)lbl.textContent=mi.lbl;
   // Highlight active entry button (3 buttons in order: camera, gallery, manual)
   const btns=document.querySelectorAll('#screen-dash .entry-modes .entry-btn');
   const order=['camera','gallery','manual'];
@@ -2228,7 +2218,7 @@ function renderStep(){
       c.innerHTML=`
         <div class="crop-wrap" id="cropWrap"><canvas id="cropCanvas"></canvas></div>
         <div class="crop-actions">
-          <button class="crop-reset" onclick="resetCrop()">↺ Retake Photo</button>
+          <button class="crop-reset" onclick="resetCrop()">↺ Change Photo</button>
           <button class="crop-extract" id="btnExtract" onclick="doExtractCropped()">⚡ Extract Reading</button>
         </div>
         <input type="file" id="camIn" accept="image/*" capture="environment" style="display:none" onchange="onPhoto(event)">
@@ -2271,13 +2261,13 @@ function renderStep(){
           <div class="fg"><div class="fl">Time</div><input class="fi" type="time" id="rTime" value="${now.toTimeString().slice(0,5)}"></div>
         </div>`:`<input type="hidden" id="rDate" value="${now.toISOString().split('T')[0]}"><input type="hidden" id="rTime" value="${now.toTimeString().slice(0,5)}">`;
       c.innerHTML=`
-        <div style="padding:8px 0 4px">
+        <div style="padding:14px 0 18px">
           <input class="cinput" type="number" id="confIn" step="${md.dec===0?'1':'0.001'}" inputmode="${md.dec===0?'numeric':'decimal'}" autofocus
             placeholder="${md.dec===0?'e.g. 12345':'e.g. 12345.6'}"
-            oninput="checkAnomaly(this.value)">
+            oninput="checkAnomaly(this.value)"
+            style="font-size:calc(26px * var(--fs));text-align:center;letter-spacing:2px">
+          <div id="anomalyZone" style="margin-top:8px;text-align:left"></div>
         </div>
-        <div id="anomalyZone" style="margin-top:6px"></div>
-        ${getRefCard()}
         ${dtFields}
         <div class="fg" style="margin-top:4px"><div class="fl">Notes (optional)</div><input class="fi ft" id="rNotes" placeholder="e.g. manual read…" maxlength="100"></div>`;
       const ilBack=document.getElementById('ilBack');
@@ -3578,7 +3568,7 @@ async function generateReport(){
     <span>🔵 Low — −40%+ below avg, check meter/supply</span>
   </div>
 
-  <div class="footer">MeterIQ v43 · Smart Meter Management · ${new Date().toISOString()}</div>
+  <div class="footer">MeterIQ v44 · Smart Meter Management · ${new Date().toISOString()}</div>
   </body></html>`;
 
   closeM('mReport');
