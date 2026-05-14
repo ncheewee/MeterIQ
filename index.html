@@ -74,7 +74,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Barlow',
 .pd.err{background:var(--rd);border-color:var(--rd)}
 .pe{font-size:calc(13px * var(--fs));color:var(--rd);margin-top:-14px;margin-bottom:12px;height:18px;text-align:center}
 .pp{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}
-.pb{height:52px;border-radius:var(--rs);background:var(--sf);border:1px solid var(--bd);font-family:'Rajdhani',sans-serif;font-size:calc(21px * var(--fs));font-weight:600;color:var(--tx);cursor:pointer;transition:all .1s;display:flex;align-items:center;justify-content:center}
+.pb{height:52px;border-radius:var(--rs);background:var(--sf);border:1px solid var(--bd);font-family:'Rajdhani',sans-serif;font-size:calc(21px * var(--fs));font-weight:600;color:var(--tx);cursor:pointer;transition:background .06s,border-color .06s;display:flex;align-items:center;justify-content:center;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none}
 .pb:active{background:var(--amg);border-color:var(--am);transform:scale(.95)}
 .pb.del{color:var(--tx2)}.pb.emp{background:none;border:none;cursor:default}
 .pbk{margin-top:14px;background:none;border:none;color:var(--tx3);font-family:'Rajdhani',sans-serif;font-size:calc(13px * var(--fs));font-weight:500;cursor:pointer;letter-spacing:1px;text-transform:uppercase}
@@ -466,7 +466,7 @@ select.fi option{background:var(--sf)}
       style="margin-top:10px;width:100%;padding:13px;border-radius:var(--r);background:var(--am);border:none;font-family:'Rajdhani',sans-serif;font-size:calc(15px * var(--fs));font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#000;cursor:pointer;transition:opacity .15s"
       ontouchstart="this.style.opacity='.75'" ontouchend="this.style.opacity='1'">SIGN IN →</button>
   </div>
-  <div class="lver">v44</div>
+  <div class="lver">v45</div>
 </div>
 
 <!-- ═══ APP ═══ -->
@@ -482,7 +482,7 @@ select.fi option{background:var(--sf)}
         <circle cx="50" cy="62" r="6.5" fill="var(--am)"/>
         <circle cx="50" cy="62" r="2.5" fill="var(--sf)"/>
       </svg>
-      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v44</span></div>
+      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v45</span></div>
     </div>
     <div class="hdr-right">
       <div class="hdr-identity">
@@ -638,6 +638,18 @@ select.fi option{background:var(--sf)}
         </div>
         <button class="btn btp bfull" style="margin-top:12px" onclick="triggerPWAInstall()">Install App</button>
       </div>
+      <!-- Manual install hint (shown when no install prompt available + not standalone) -->
+      <div class="card" id="pwaManualCard" style="display:none;background:var(--sf2)">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+          <div style="font-size:24px;flex-shrink:0">📲</div>
+          <div style="flex:1"><div class="slbl">Add to Home Screen</div><div class="ssub">Open in your phone's browser for the best experience</div></div>
+        </div>
+        <div style="font-size:calc(12px * var(--fs));color:var(--tx2);line-height:1.7">
+          <div><b>Chrome/Edge (Android):</b> tap ⋮ → <em>Add to Home screen</em></div>
+          <div><b>Samsung Internet:</b> tap ☰ → <em>Add page to</em> → <em>Home screen</em></div>
+          <div><b>Other browsers (Oppo, Vivo, etc.):</b> copy the URL and open it in Chrome, then install from there</div>
+        </div>
+      </div>
       <div class="card">
         <div class="stitle" style="margin-bottom:4px">Appearance</div>
         <div class="si"><div><div class="slbl">Dark Theme</div></div><button class="tog on" id="themeToggle" onclick="toggleTheme()"></button></div>
@@ -735,7 +747,7 @@ select.fi option{background:var(--sf)}
         </div>
         <div class="si" id="btnClearData"><div><div class="slbl">Clear All</div><div class="ssub">Cannot be undone</div></div><button class="btn btd" style="padding:6px 11px;font-size:12px" onclick="clearAll()">Clear</button></div>
       </div>
-      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v44 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
+      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v45 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
     </div>
 
     <!-- ADMIN (role-gated) -->
@@ -1066,7 +1078,7 @@ const DB={
 // ═══════════════════════════════════════════
 let S={
   prop:null,units:[],readings:[],activeUnit:null,activeMeter:'electricity',
-  aiProv:'groq',groqKey:'',orKey:'',gemKey:'',claKey:'',dark:true,fs:1,
+  aiProv:'groq',groqKey:'',orKey:'',gemKey:'',claKey:'',dark:false,fs:1,
   tgToken:'8771320341:AAEmA-7TgxmljzX71zyDrxCXJb_cQCvCXVE',
   tgChatId:'1012649171',
   alertCfg:{onSave:false,onHigh:true,onCritical:true,onGradRise:false,onGradFall:false,onLow:false},
@@ -1222,12 +1234,23 @@ function genDemo(pid){
 //  PWA INSTALL
 // ═══════════════════════════════════════════
 let _pwaPrompt=null;
+const _isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
 window.addEventListener('beforeinstallprompt',e=>{
   e.preventDefault();
   _pwaPrompt=e;
   const card=document.getElementById('pwaInstallCard');
   if(card)card.style.display='';
+  // Hide manual hint since we have a proper prompt
+  const mc=document.getElementById('pwaManualCard');if(mc)mc.style.display='none';
 });
+// Show manual install hint if not standalone + prompt didn't fire within 1s
+if(!_isStandalone){
+  setTimeout(()=>{
+    if(!_pwaPrompt){
+      const mc=document.getElementById('pwaManualCard');if(mc)mc.style.display='';
+    }
+  },1000);
+}
 window.addEventListener('appinstalled',()=>{
   _pwaPrompt=null;
   const card=document.getElementById('pwaInstallCard');
@@ -1529,8 +1552,8 @@ function applyRoleUI(role){
     chip.style.color=role==='admin'?'var(--rd)':role==='manager'?'var(--bl)':'var(--gn)';
   }
 
-  // ── Nav: Admin tab (admin only) ──
-  document.getElementById('navAdmin').style.display=role==='admin'?'':'none';
+  // ── Nav: Admin tab (admin + manager) ──
+  document.getElementById('navAdmin').style.display=(role==='admin'||role==='manager')?'':'none';
 
   // ── Nav: Analytics tab (hidden for inspector) ──
   const anlNav=document.getElementById('navAnalytics');
@@ -1548,9 +1571,9 @@ function applyRoleUI(role){
   const cardAI=document.getElementById('setCardAI');
   if(cardAI)cardAI.style.display=role==='admin'?'':'none';
 
-  // ── Settings: Telegram card (admin + manager) ──
+  // ── Settings: Telegram card (admin only) ──
   const cardTg=document.getElementById('setCardTelegram');
-  if(cardTg)cardTg.style.display=role==='inspector'?'none':'';
+  if(cardTg)cardTg.style.display=role==='admin'?'':'none';
 
   // ── Settings: Data card (admin + manager) ──
   const cardData=document.getElementById('setCardData');
@@ -1571,10 +1594,17 @@ function toggleTgGuide(){
   arrow.textContent=open?'▸':'▾';
 }
 function logout(){
-  sessionStorage.removeItem('mq4_session');S.session=null;S.prop=null;S.units=[];S.readings=[];S.activeUnit=null;
-  ['mini','anlMain','anlMulti'].forEach(k=>{if(CH[k]){CH[k].destroy();CH[k]=null;}});
-  const uNameEl=document.getElementById('userNameDisp');if(uNameEl)uNameEl.textContent='';
-  showLoginScreen();
+  // Show loading screen immediately for instant visual feedback
+  const ld=document.getElementById('loadingScreen'),ap=document.getElementById('app');
+  if(ld){ld.style.display='flex';ld.classList.remove('hidden');}
+  if(ap)ap.style.opacity='0';
+  setTimeout(()=>{
+    if(ap){ap.style.opacity='';ap.style.display='';}
+    sessionStorage.removeItem('mq4_session');S.session=null;S.prop=null;S.units=[];S.readings=[];S.activeUnit=null;
+    ['mini','anlMain','anlMulti'].forEach(k=>{if(CH[k]){CH[k].destroy();CH[k]=null;}});
+    const uNameEl=document.getElementById('userNameDisp');if(uNameEl)uNameEl.textContent='';
+    showLoginScreen();
+  },120);
 }
 
 // ═══════════════════════════════════════════
@@ -1674,7 +1704,9 @@ function renderUPList(q){
   const f=S.units.filter(u=>u.number.toLowerCase().includes(lc)||(u.name||'').toLowerCase().includes(lc)||(u.location||'').toLowerCase().includes(lc));
   const el=document.getElementById('upList');
   if(!f.length){
-    el.innerHTML=`<div style="text-align:center;padding:18px;color:var(--tx3);font-size:13px">No meters match "${q}"</div><button class="upadd" onclick="closeM('mUnitPicker');openAddUnit(S.prop?.id)">+ Add New Meter</button>`;
+    const canAdd=S.session?.user?.role!=='inspector';
+    el.innerHTML=`<div style="text-align:center;padding:18px;color:var(--tx3);font-size:13px">No meters match "${q}"</div>${canAdd?`<button class="upadd" onclick="closeM('mUnitPicker');openAddUnit(S.prop?.id)">+ Add New Meter</button>`:''}`;
+
     return;
   }
   el.innerHTML=f.map(u=>{
@@ -1685,7 +1717,7 @@ function renderUPList(q){
       <div style="font-size:20px;width:36px;height:36px;background:var(--sf);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0">🏢</div>
       <div style="flex:1;min-width:0"><div class="upi-num">${u.name||u.number}${cur?' ✓':''}</div><div class="upi-desc">${u.location||''}</div><div class="upi-loc">${u.number}</div></div>
       <div class="upi-meta">${cnt} rdgs<br>${ld}</div></div>`;
-  }).join('')+`<button class="upadd" onclick="closeM('mUnitPicker');openAddUnit(S.prop?.id)">+ Add New Meter</button>`;
+  }).join('')+(S.session?.user?.role!=='inspector'?`<button class="upadd" onclick="closeM('mUnitPicker');openAddUnit(S.prop?.id)">+ Add New Meter</button>`:'');
 }
 function pickUnit(id){
   S.activeUnit=id;
@@ -2065,28 +2097,29 @@ function openFeedback(){
   document.getElementById('fbText').value='';
   openM('mFeedback');
 }
+let _fbSending=false;
 async function submitFeedback(){
   const name=document.getElementById('fbName').value.trim()||'Anonymous';
   const screen=document.getElementById('fbScreen').value||'?';
   const text=document.getElementById('fbText').value.trim();
   if(!text){toast('Please enter some feedback first','err');return;}
+  if(_fbSending)return; _fbSending=true;
+  // Instant dismiss — feels immediate
+  closeM('mFeedback');
+  toast('✓ Feedback sent — thank you!','ok');
+  // Send in background
   const now=new Date();
   const tsFmt=now.toLocaleString('en-SG',{timeZone:'Asia/Singapore',dateStyle:'short',timeStyle:'short'});
   const tsIso=now.toISOString();
   const appVer=document.querySelector('.lver')?.textContent||'?';
-  // Telegram notification
   const msg=`📝 <b>MeterIQ Pilot Feedback</b>\n👤 ${name}  |  📍 ${screen}  |  🕐 ${tsFmt}\n\n${text}`;
   try{ await sendTelegramAlert(msg); }catch(e){ console.warn('TG feedback failed',e); }
-  // Backend storage
-  if(S.backendUrl&&S.session?.token!=='offline'){
+  if(S.backendUrl){
     try{
-      await API.call('saveFeedback',{feedback:{
-        id:'fb_'+Date.now(),user:name,screen,text,ts:tsIso,ver:appVer
-      }});
+      await API.call('saveFeedback',{feedback:{id:'fb_'+Date.now(),user:name,screen,text,ts:tsIso,ver:appVer}});
     }catch(e){ console.warn('Backend feedback save failed',e); }
   }
-  toast('✓ Feedback sent — thank you!','ok');
-  closeM('mFeedback');
+  setTimeout(()=>{_fbSending=false;},3000);
 }
 
 // Shared cap-init logic (returns false if blocked)
@@ -2289,7 +2322,9 @@ function showConfirmZone(){
         <div class="fg"><div class="fl">Time</div><input class="fi" type="time" id="rTime" value="${now.toTimeString().slice(0,5)}"></div>
       </div>`
     :`<input type="hidden" id="rDate" value="${now.toISOString().split('T')[0]}"><input type="hidden" id="rTime" value="${now.toTimeString().slice(0,5)}">`;
+  const cropThumb=cap.croppedPhoto?`<div style="margin-bottom:14px"><img src="${cap.croppedPhoto}" style="width:100%;max-height:38vw;object-fit:contain;border-radius:var(--rs);border:1px solid var(--bd)"></div>`:'';
   c.innerHTML=`
+    ${cropThumb}
     <div style="text-align:center;padding:18px 0 22px">
       <div style="display:flex;align-items:baseline;justify-content:center;gap:8px;margin-bottom:20px">
         <div class="dnum" id="extractedDisplay" style="font-size:calc(38px * var(--fs))">${fNum(cap.extracted,md?.dec||0)}</div>
@@ -3568,7 +3603,7 @@ async function generateReport(){
     <span>🔵 Low — −40%+ below avg, check meter/supply</span>
   </div>
 
-  <div class="footer">MeterIQ v44 · Smart Meter Management · ${new Date().toISOString()}</div>
+  <div class="footer">MeterIQ v45 · Smart Meter Management · ${new Date().toISOString()}</div>
   </body></html>`;
 
   closeM('mReport');
@@ -4052,6 +4087,29 @@ function toast(msg,type=''){const t=document.getElementById('toast');t.textConte
 init().then(()=>{
   if(!S.session) showLoginScreen();
   initPinBoxes();
+});
+
+// ── ANDROID BACK BUTTON TRAP ────────────────
+// Push a dummy history entry so popstate fires before the OS exits the PWA
+history.pushState({miq:true},'','');
+let _backPressedAt=0;
+window.addEventListener('popstate',()=>{
+  // Re-push so we always have somewhere to go
+  history.pushState({miq:true},'','');
+  // 1) Close any open modal
+  const openOv=document.querySelector('.ov.open');
+  if(openOv){closeM(openOv.id);return;}
+  // 2) Close inline capture
+  const ic=document.getElementById('inlineCap');
+  if(ic&&ic.style.display!=='none'){closeInlineCap();return;}
+  // 3) If not on Home, go Home
+  const activeSc=document.querySelector('.screen.active');
+  if(activeSc&&activeSc.id!=='screen-dash'){go('dash');return;}
+  // 4) On Home: double-back pattern
+  const now=Date.now();
+  if(now-_backPressedAt<2200){toast('Swipe the app away in the task switcher to exit','');return;}
+  _backPressedAt=now;
+  toast('Press Back again to exit','');
 });
 // Close login user picker when tapping outside it
 document.addEventListener('click', e=>{
