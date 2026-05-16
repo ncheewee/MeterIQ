@@ -466,7 +466,7 @@ select.fi option{background:var(--sf)}
       style="margin-top:10px;width:100%;padding:13px;border-radius:var(--r);background:var(--am);border:none;font-family:'Rajdhani',sans-serif;font-size:calc(15px * var(--fs));font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#000;cursor:pointer;transition:opacity .15s"
       ontouchstart="this.style.opacity='.75'" ontouchend="this.style.opacity='1'">SIGN IN →</button>
   </div>
-  <div class="lver">v47</div>
+  <div class="lver">v48</div>
 </div>
 
 <!-- ═══ APP ═══ -->
@@ -482,7 +482,7 @@ select.fi option{background:var(--sf)}
         <circle cx="50" cy="62" r="6.5" fill="var(--am)"/>
         <circle cx="50" cy="62" r="2.5" fill="var(--sf)"/>
       </svg>
-      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v47</span></div>
+      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v48</span></div>
     </div>
     <div class="hdr-right">
       <div class="hdr-identity">
@@ -747,7 +747,7 @@ select.fi option{background:var(--sf)}
         </div>
         <div class="si" id="btnClearData"><div><div class="slbl">Clear All</div><div class="ssub">Cannot be undone</div></div><button class="btn btd" style="padding:6px 11px;font-size:12px" onclick="clearAll()">Clear</button></div>
       </div>
-      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v47 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
+      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v48 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
     </div>
 
     <!-- ADMIN (role-gated) -->
@@ -1350,22 +1350,23 @@ function populateLoginSelect(){
   DB.get('login_users_cache').then(cached=>{
     const source=cached?.length?cached:LOCAL_USERS.map(u=>({name:u.name,role:u.role}));
     const groups=[
-      {role:'inspector',label:'Inspectors', icon:'🔍'},
-      {role:'manager',  label:'Managers',   icon:'📊'},
-      {role:'admin',    label:'Admins',     icon:'🔑'},
+      {role:'inspector',icon:'🔍'},
+      {role:'manager',  icon:'📊'},
+      {role:'admin',    icon:'🔑'},
     ];
+    const roleChipColor={admin:'var(--rd)',manager:'var(--bl)',inspector:'var(--gn)'};
     let html='';
     groups.forEach(g=>{
       const members=source.filter(u=>(u.role||'inspector')===g.role);
       if(!members.length)return;
-      html+=`<div class="lup-grp-lbl">${g.label}</div>`;
+      const chipCol=roleChipColor[g.role]||'var(--tx3)';
       members.forEach(u=>{
         const sel=lSelectedUser===u.name?' sel':'';
         html+=`<div class="lup-item${sel}" data-name="${u.name}"
           onclick="pickLoginUser('${u.name.replace(/'/g,"\\'")}','${(u.role||'inspector')}','${g.icon}')">
           <span class="lup-item-ico">${g.icon}</span>
           <span class="lup-item-name">${u.name}</span>
-          <span class="lup-item-role">${(u.role||'inspector').toUpperCase()}</span>
+          <span class="lup-item-role" style="background:${chipCol}20;color:${chipCol};border-color:${chipCol}40">${(u.role||'inspector').toUpperCase()}</span>
         </div>`;
       });
     });
@@ -2841,8 +2842,17 @@ function showDetail(id){
     <button class="btn btd bfull" onclick="delReading('${r.id}')">Delete Reading</button>`;
   openM('mDetail');
 }
+let _delConfirm=null;
 function delReading(id){
-  if(!confirm('Delete?'))return;S.readings=S.readings.filter(r=>r.id!==id);saveR();closeM('mDetail');renderHistory();renderDashboard();toast('Deleted');
+  if(_delConfirm===id){
+    _delConfirm=null;
+    S.readings=S.readings.filter(r=>r.id!==id);
+    saveR();closeM('mDetail');renderHistory();renderDashboard();toast('Reading deleted');
+  } else {
+    _delConfirm=id;
+    setTimeout(()=>{if(_delConfirm===id)_delConfirm=null;},3000);
+    toast('Tap Delete again to confirm','');
+  }
 }
 function openEditReading(id){
   const r=S.readings.find(x=>x.id===id);if(!r)return;
@@ -3613,7 +3623,7 @@ async function generateReport(){
     <span>🔵 Low — −40%+ below avg, check meter/supply</span>
   </div>
 
-  <div class="footer">MeterIQ v47 · Smart Meter Management · ${new Date().toISOString()}</div>
+  <div class="footer">MeterIQ v48 · Smart Meter Management · ${new Date().toISOString()}</div>
   </body></html>`;
 
   closeM('mReport');
@@ -3791,7 +3801,7 @@ async function renderAdminUsers(){
       <div style="flex:1;min-width:0">
         <div class="slbl">${u.name}</div>
         <div class="ssub" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span style="color:${roleColor}">${ROLES[u.role]||u.role}</span>
+          <span style="background:${roleColor}20;color:${roleColor};border:1px solid ${roleColor}40;border-radius:4px;padding:1px 7px;font-size:calc(10px * var(--fs));font-weight:700;letter-spacing:.5px">${(u.role||'inspector').toUpperCase()}</span>
           ${pinDisplay?`<span style="font-family:'Share Tech Mono',monospace;font-size:calc(11px * var(--fs));color:var(--tx3);background:var(--sf2);padding:1px 6px;border-radius:4px;border:1px solid var(--bd)">PIN: ${pinDisplay}</span>`:''}
         </div>
       </div>
