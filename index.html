@@ -395,7 +395,7 @@ select.fi option{background:var(--sf)}
 .pin-box.filled{border-color:var(--bd2)}
 </style>
 </head>
-<body class="light">
+<body>
 
 <!-- ═══ LOADING ═══ -->
 <div id="loadingScreen">
@@ -476,7 +476,7 @@ select.fi option{background:var(--sf)}
       style="margin-top:10px;width:100%;padding:13px;border-radius:var(--r);background:var(--am);border:none;font-family:'Rajdhani',sans-serif;font-size:calc(15px * var(--fs));font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#000;cursor:pointer;transition:opacity .15s"
       ontouchstart="this.style.opacity='.75'" ontouchend="this.style.opacity='1'">SIGN IN →</button>
   </div>
-  <div class="lver">v50</div>
+  <div class="lver">v49.4</div>
 </div>
 
 <!-- ═══ APP ═══ -->
@@ -492,7 +492,7 @@ select.fi option{background:var(--sf)}
         <circle cx="50" cy="62" r="6.5" fill="var(--am)"/>
         <circle cx="50" cy="62" r="2.5" fill="var(--sf)"/>
       </svg>
-      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v50</span></div>
+      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v49.4</span></div>
     </div>
     <div class="hdr-right">
       <div class="hdr-identity">
@@ -755,13 +755,9 @@ select.fi option{background:var(--sf)}
           <div><div class="slbl">Export Raw Data</div><div class="ssub">Download as CSV</div></div>
           <button class="btn btg" style="padding:6px 11px;font-size:12px" onclick="exportData()">Export</button>
         </div>
-        <div class="si" id="btnExportPivot">
-          <div><div class="slbl">Export Pivot (per property)</div><div class="ssub">Meters × month/date — one CSV per property + chronological</div></div>
-          <button class="btn btg" style="padding:6px 11px;font-size:12px" onclick="exportPivotCSV()">Export Pivot</button>
-        </div>
         <div class="si" id="btnClearData"><div><div class="slbl">Clear All</div><div class="ssub">Cannot be undone</div></div><button class="btn btd" style="padding:6px 11px;font-size:12px" onclick="clearAll()">Clear</button></div>
       </div>
-      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v50 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
+      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v49.4 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
     </div>
 
     <!-- ADMIN (role-gated) -->
@@ -1573,29 +1569,29 @@ function applyRoleUI(role){
 
   // ── Nav: Admin tab (admin + manager) ──
   document.getElementById('navAdmin').style.display=(role==='admin'||role==='manager')?'':'none';
-  // ── Admin tabs: managers now see Sync + Feedback (admin functions, no secrets) ──
+  // ── Admin tabs: hide Sync + Feedback for manager ──
   ['sync','feedback'].forEach(t=>{
     const tb=document.getElementById('atab-'+t);
-    if(tb)tb.style.display=(role==='admin'||role==='manager')?'':'none';
+    if(tb)tb.style.display=(role==='admin')?'':'none';
   });
 
   // ── Nav: Analytics tab (hidden for inspector) ──
   const anlNav=document.getElementById('navAnalytics');
   if(anlNav)anlNav.style.display=role==='inspector'?'none':'';
 
-  // ── Capture FAB on Home (admin + manager can capture; inspector also uses other entry points) ──
+  // ── Capture FAB on Home (hidden for manager) ──
   const fab=document.getElementById('dashFAB');
-  if(fab)fab.style.display='';
+  if(fab)fab.style.display=role==='manager'?'none':'';
 
-  // ── Settings: Backend card (admin + manager — manager can switch backend URL but no secrets) ──
+  // ── Settings: Backend card (admin only) ──
   const cardBackend=document.getElementById('setCardBackend');
-  if(cardBackend)cardBackend.style.display=(role==='admin'||role==='manager')?'':'none';
+  if(cardBackend)cardBackend.style.display=role==='admin'?'':'none';
 
-  // ── Settings: AI Provider card (admin only — contains API keys) ──
+  // ── Settings: AI Provider card (admin only) ──
   const cardAI=document.getElementById('setCardAI');
   if(cardAI)cardAI.style.display=role==='admin'?'':'none';
 
-  // ── Settings: Telegram card (admin only — contains bot token) ──
+  // ── Settings: Telegram card (admin only) ──
   const cardTg=document.getElementById('setCardTelegram');
   if(cardTg)cardTg.style.display=role==='admin'?'':'none';
 
@@ -1603,12 +1599,10 @@ function applyRoleUI(role){
   const cardData=document.getElementById('setCardData');
   if(cardData)cardData.style.display=role==='inspector'?'none':'';
 
-  // ── Within Data card: Export for admin+manager; Clear admin-only (destructive) ──
+  // ── Within Data card: Export for admin+manager; Clear for admin only ──
   const btnExport=document.getElementById('btnExportData');
-  const btnExportPivot=document.getElementById('btnExportPivot');
   const btnClear=document.getElementById('btnClearData');
   if(btnExport)btnExport.style.display=(role==='admin'||role==='manager')?'':'none';
-  if(btnExportPivot)btnExportPivot.style.display=(role==='admin'||role==='manager')?'':'none';
   if(btnClear)btnClear.style.display=role==='admin'?'':'none';
 }
 
@@ -3381,156 +3375,6 @@ function exportData(){
   a.click();
   toast('✓ CSV exported');
 }
-// ─── PIVOT CSV EXPORT ───────────────────────
-// Per-property pivot sheets + one chronological sheet.
-// Pivot format: rows = unit × meter type, columns = month → reading-date sub-columns.
-// Cells = reading value. Each property gets its own CSV file (MBC1, MBC2, …).
-async function exportPivotCSV(){
-  try{
-    toast('Building pivot exports…');
-    // Pull per-property data from local DB (covers properties not currently active).
-    const props=PROPS.length?PROPS:(S.prop?[S.prop]:[]);
-    if(!props.length){toast('No properties available','err');return;}
-    const propData=[]; // [{prop, units, readings}]
-    for(const p of props){
-      let units=await DB.get('units_'+p.id);
-      let reads=await DB.get('readings_'+p.id);
-      // Fall back to in-memory for active property
-      if(S.prop?.id===p.id){
-        if(!units||!units.length) units=S.units;
-        if(!reads||!reads.length) reads=S.readings;
-      }
-      propData.push({prop:p,units:units||[],readings:reads||[]});
-    }
-
-    const csvEscape=v=>{const s=String(v??'').replace(/"/g,'""');return s.includes(',')||s.includes('"')||s.includes('\n')?`"${s}"`:s;};
-    const rowsToCsv=rows=>rows.map(r=>r.map(csvEscape).join(',')).join('\r\n');
-    const dl=(filename,csv)=>{
-      const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
-      const a=document.createElement('a');
-      a.href=URL.createObjectURL(blob);
-      a.download=filename;
-      document.body.appendChild(a);a.click();
-      setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
-    };
-
-    const today=new Date().toISOString().slice(0,10);
-    let fileIdx=0;
-
-    // ── Per-property pivot files ──
-    for(const {prop,units,readings} of propData){
-      if(!readings.length) continue;
-      // Sort readings ascending
-      const sorted=[...readings].sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(a.time||'').localeCompare(b.time||''));
-      // Discover all unique reading dates (full YYYY-MM-DD) — these are the leaf columns
-      const dates=[...new Set(sorted.map(r=>r.date).filter(Boolean))].sort();
-      // Group dates by month for the top header row
-      const monthOf=d=>(d||'').slice(0,7); // YYYY-MM
-      const monthGroups=[]; // [{month, dates:[]}]
-      dates.forEach(d=>{
-        const m=monthOf(d);
-        let g=monthGroups.find(x=>x.month===m);
-        if(!g){g={month:m,dates:[]};monthGroups.push(g);}
-        g.dates.push(d);
-      });
-
-      // Build header rows (two rows: month spanning + date)
-      const headerMonth=['','',''];
-      const headerDate=['Unit #','Unit Name','Meter Type'];
-      monthGroups.forEach(g=>{
-        g.dates.forEach((d,i)=>{
-          headerMonth.push(i===0?g.month:'');
-          headerDate.push(d);
-        });
-      });
-
-      // Build a row per (unit × meter type)
-      const rowMap=new Map(); // key=unitId|meterType → {unit, meterType, values:{date:reading}}
-      sorted.forEach(r=>{
-        const key=r.unitId+'|'+r.meterType;
-        let entry=rowMap.get(key);
-        if(!entry){
-          const u=units.find(x=>x.id===r.unitId);
-          entry={unit:u||{id:r.unitId,number:r.unitId,name:''},meterType:r.meterType,values:{}};
-          rowMap.set(key,entry);
-        }
-        // If multiple readings on the same date, keep the latest (by time)
-        const existing=entry.values[r.date];
-        if(!existing||(r.time||'').localeCompare(existing.time||'')>=0){
-          entry.values[r.date]={reading:r.reading,time:r.time};
-        }
-      });
-
-      // Sort rows by unit number then meter type
-      const entries=[...rowMap.values()].sort((a,b)=>{
-        const an=(a.unit.number||a.unit.id||'').toString();
-        const bn=(b.unit.number||b.unit.id||'').toString();
-        return an.localeCompare(bn,undefined,{numeric:true})||a.meterType.localeCompare(b.meterType);
-      });
-
-      const dataRows=entries.map(e=>{
-        const mdLabel=(MDEFS.find(m=>m.type===e.meterType)||{}).label||e.meterType;
-        const r=[e.unit.number||e.unit.id||'', [e.unit.name,e.unit.location].filter(Boolean).join(' | '), mdLabel];
-        monthGroups.forEach(g=>{
-          g.dates.forEach(d=>{
-            r.push(e.values[d]?.reading??'');
-          });
-        });
-        return r;
-      });
-
-      const titleRow=[`${prop.name||prop.id} — Pivot Export (${today})`];
-      const blankRow=[''];
-      const csv=rowsToCsv([titleRow,blankRow,headerMonth,headerDate,...dataRows]);
-      // Filename-safe property name
-      const safe=(prop.name||prop.id).replace(/[^A-Za-z0-9_-]+/g,'_');
-      dl(`MeterIQ_${safe}_pivot_${today}.csv`,csv);
-      fileIdx++;
-      // Tiny gap so the browser doesn't suppress sequential downloads
-      await new Promise(r=>setTimeout(r,400));
-    }
-
-    // ── Chronological "all properties" sheet ──
-    const chronoCols=['Date','Time','Property','Unit #','Unit Name','Meter Type','Unit of Measure','Reading','Consumption','Notes','AI Confidence','Saved At'];
-    const chronoRows=[chronoCols];
-    const allReads=[];
-    propData.forEach(({prop,units,readings})=>{
-      readings.forEach(r=>{
-        const u=units.find(x=>x.id===r.unitId);
-        allReads.push({r,u,propName:prop.name||prop.id});
-      });
-    });
-    allReads.sort((a,b)=>(a.r.date||'').localeCompare(b.r.date||'')||(a.r.time||'').localeCompare(b.r.time||''));
-    // For each row, compute consumption against prior reading of same unit+meter
-    const priorByKey={};
-    allReads.forEach(({r,u,propName})=>{
-      const md=MDEFS.find(m=>m.type===r.meterType);
-      const key=r.unitId+'|'+r.meterType;
-      const prev=priorByKey[key];
-      const cons=prev?(parseFloat(r.reading)-parseFloat(prev.reading)).toFixed(md?.dec??2):'';
-      chronoRows.push([
-        r.date,r.time,propName,
-        u?.number||r.unitId,
-        [u?.name,u?.location].filter(Boolean).join(' | '),
-        md?.label||r.meterType,
-        md?.unit||'',
-        r.reading,cons,r.notes||'',r.aiConf||'',r.savedAt||''
-      ]);
-      priorByKey[key]=r;
-    });
-    if(allReads.length){
-      dl(`MeterIQ_chronological_${today}.csv`,rowsToCsv(chronoRows));
-      fileIdx++;
-    }
-
-    if(fileIdx===0){toast('No readings to export','err');return;}
-    toast(`✓ Exported ${fileIdx} CSV file${fileIdx>1?'s':''}`);
-  }catch(e){
-    console.error('Pivot export failed:',e);
-    toast('Pivot export failed: '+(e.message||e),'err');
-  }
-}
-
 function clearAll(){if(!confirm('Delete ALL readings?'))return;S.readings=[];saveR();refreshAll();toast('Cleared');}
 
 // ═══════════════════════════════════════════
@@ -3789,7 +3633,7 @@ async function generateReport(){
     <span>🔵 Low — −40%+ below avg, check meter/supply</span>
   </div>
 
-  <div class="footer">MeterIQ v50 · Smart Meter Management · ${new Date().toISOString()}</div>
+  <div class="footer">MeterIQ v49.4 · Smart Meter Management · ${new Date().toISOString()}</div>
   </body></html>`;
 
   closeM('mReport');
@@ -4189,8 +4033,6 @@ async function removeProp(id){
 
 // Unit CRUD
 function openAddUnit(pid){
-  // Inspectors cannot add meters (defensive — button is also hidden in UI)
-  if(S.session?.user?.role==='inspector'){toast('Inspectors cannot add meters','err');return;}
   document.getElementById('mAddUnitTitle').textContent='Add Unit';
   document.getElementById('auPropId').value=pid||S.prop?.id||'';
   document.getElementById('auUnitId').value='';
@@ -4213,8 +4055,6 @@ function openEditUnit(pid, u){
   openM('mAddUnit');
 }
 async function submitUnit(){
-  // Inspectors cannot create or edit units (defensive guard)
-  if(S.session?.user?.role==='inspector'){toast('Inspectors cannot add or edit meters','err');return;}
   const num=document.getElementById('nuNum').value.trim();
   const name=document.getElementById('nuName').value.trim();
   const location=document.getElementById('nuLocation').value.trim();
