@@ -88,8 +88,9 @@ function handleRequest(e) {
       case 'deleteUser':   return json(deleteUser(user, merged));
       case 'saveProperty': return json(saveProperty(user, merged));
       case 'saveUnit':     return json(saveUnit(user, merged));
-      case 'deleteUnit':   return json(deleteUnit(user, merged));
-      case 'getFeedback':  return json(getFeedback(user));
+      case 'deleteUnit':    return json(deleteUnit(user, merged));
+      case 'deleteReading': return json(deleteReading(user, merged));
+      case 'getFeedback':   return json(getFeedback(user));
       default:             return json({ ok: false, error: 'Unknown action: ' + action });
     }
   } catch(err) { return json({ ok: false, error: err.message }); }
@@ -430,6 +431,15 @@ function deleteUnit(user, body) {
   const sheet = getSheet(SHEETS.UNITS);
   const idx   = findRow(sheet, body.unitId, 0);
   if (idx >= 0) sheet.deleteRow(idx + 1);
+  return { ok: true };
+}
+
+function deleteReading(user, body) {
+  if (!body.readingId) return { ok: false, error: 'readingId required' };
+  const sheet = getSheet(SHEETS.READINGS);
+  const idx   = findRow(sheet, body.readingId, 0);
+  if (idx >= 0) sheet.deleteRow(idx + 1);
+  logSync(user.name, 'deleteReading', body.readingId);
   return { ok: true };
 }
 
