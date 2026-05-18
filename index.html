@@ -476,7 +476,7 @@ select.fi option{background:var(--sf)}
       style="margin-top:10px;width:100%;padding:13px;border-radius:var(--r);background:var(--am);border:none;font-family:'Rajdhani',sans-serif;font-size:calc(15px * var(--fs));font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#000;cursor:pointer;transition:opacity .15s"
       ontouchstart="this.style.opacity='.75'" ontouchend="this.style.opacity='1'">SIGN IN →</button>
   </div>
-  <div class="lver">v51</div>
+  <div class="lver">v52</div>
 </div>
 
 <!-- ═══ APP ═══ -->
@@ -492,7 +492,7 @@ select.fi option{background:var(--sf)}
         <circle cx="50" cy="62" r="6.5" fill="var(--am)"/>
         <circle cx="50" cy="62" r="2.5" fill="var(--sf)"/>
       </svg>
-      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v51</span></div>
+      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v52</span></div>
     </div>
     <div class="hdr-right">
       <div class="hdr-identity">
@@ -757,7 +757,7 @@ select.fi option{background:var(--sf)}
         </div>
         <div class="si" id="btnClearData"><div><div class="slbl">Clear All</div><div class="ssub">Cannot be undone</div></div><button class="btn btd" style="padding:6px 11px;font-size:12px" onclick="clearAll()">Clear</button></div>
       </div>
-      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v51 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
+      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v52 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
     </div>
 
     <!-- ADMIN (role-gated) -->
@@ -1331,6 +1331,7 @@ function showLoginScreen(){
 }
 
 function _revealLoginForm(){
+  if(S.session) return; // user already logged in — stale fetchLoginUsers callback, ignore
   const ld=document.getElementById('loadingScreen');
   const ls=document.getElementById('loginScreen');
   if(ld){ld.classList.add('hidden');setTimeout(()=>{ld.style.display='none';},360);}
@@ -3644,7 +3645,7 @@ async function generateReport(){
     <span>🔵 Low — −40%+ below avg, check meter/supply</span>
   </div>
 
-  <div class="footer">MeterIQ v51 · Smart Meter Management · ${new Date().toISOString()}</div>
+  <div class="footer">MeterIQ v52 · Smart Meter Management · ${new Date().toISOString()}</div>
   </body></html>`;
 
   closeM('mReport');
@@ -4133,7 +4134,6 @@ function toast(msg,type=''){const t=document.getElementById('toast');t.textConte
 // (inline blob SW removed — conflicts with versioned sw.js)
 
 init().then(()=>{
-  if(!S.session) showLoginScreen();
   initPinBoxes();
 });
 
