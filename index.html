@@ -476,7 +476,7 @@ select.fi option{background:var(--sf)}
       style="margin-top:10px;width:100%;padding:13px;border-radius:var(--r);background:var(--am);border:none;font-family:'Rajdhani',sans-serif;font-size:calc(15px * var(--fs));font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#000;cursor:pointer;transition:opacity .15s"
       ontouchstart="this.style.opacity='.75'" ontouchend="this.style.opacity='1'">SIGN IN →</button>
   </div>
-  <div class="lver">v50</div>
+  <div class="lver">v51</div>
 </div>
 
 <!-- ═══ APP ═══ -->
@@ -492,7 +492,7 @@ select.fi option{background:var(--sf)}
         <circle cx="50" cy="62" r="6.5" fill="var(--am)"/>
         <circle cx="50" cy="62" r="2.5" fill="var(--sf)"/>
       </svg>
-      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v50</span></div>
+      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v51</span></div>
     </div>
     <div class="hdr-right">
       <div class="hdr-identity">
@@ -757,7 +757,7 @@ select.fi option{background:var(--sf)}
         </div>
         <div class="si" id="btnClearData"><div><div class="slbl">Clear All</div><div class="ssub">Cannot be undone</div></div><button class="btn btd" style="padding:6px 11px;font-size:12px" onclick="clearAll()">Clear</button></div>
       </div>
-      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v50 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
+      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v51 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
     </div>
 
     <!-- ADMIN (role-gated) -->
@@ -856,6 +856,19 @@ select.fi option{background:var(--sf)}
 </div>
 
 <div class="ov" id="mDetail"><div class="modal"><div class="mh"></div><div id="detailContent"></div></div></div>
+
+<!-- Delete Confirm Dialog -->
+<div class="ov" id="mDelConfirm" style="z-index:2100">
+  <div class="modal" style="max-width:320px;padding:28px 24px 20px;text-align:center">
+    <div style="font-size:2rem;margin-bottom:10px">🗑️</div>
+    <div style="font-weight:700;font-size:1.05rem;margin-bottom:8px">Delete this reading?</div>
+    <div style="color:var(--tx2);font-size:0.9rem;margin-bottom:22px">This cannot be undone.</div>
+    <div style="display:flex;gap:10px">
+      <button class="btn bfull" style="background:var(--sf2);color:var(--tx1)" onclick="closeM('mDelConfirm')">Cancel</button>
+      <button class="btn btd bfull" id="mDelConfirmBtn">Delete</button>
+    </div>
+  </div>
+</div>
 
 <!-- Edit Reading Modal (admin only) -->
 <div class="ov" id="mEditReading">
@@ -2852,19 +2865,15 @@ function showDetail(id){
     <button class="btn btd bfull" onclick="delReading('${r.id}')">Delete Reading</button>`;
   openM('mDetail');
 }
-let _delConfirm=null;
 function delReading(id){
-  if(_delConfirm===id){
-    _delConfirm=null;
+  const btn=document.getElementById('mDelConfirmBtn');
+  btn.onclick=()=>{
+    closeM('mDelConfirm');
     S.readings=S.readings.filter(r=>r.id!==id);
     saveR();closeM('mDetail');renderHistory();renderDashboard();toast('Reading deleted');
-    // Sync deletion to backend — prevents reading reappearing on next login
     API.call('deleteReading',{readingId:id}).catch(()=>{});
-  } else {
-    _delConfirm=id;
-    setTimeout(()=>{if(_delConfirm===id)_delConfirm=null;},3000);
-    toast('Tap Delete again to confirm','');
-  }
+  };
+  openM('mDelConfirm');
 }
 function openEditReading(id){
   const r=S.readings.find(x=>x.id===id);if(!r)return;
@@ -3635,7 +3644,7 @@ async function generateReport(){
     <span>🔵 Low — −40%+ below avg, check meter/supply</span>
   </div>
 
-  <div class="footer">MeterIQ v50 · Smart Meter Management · ${new Date().toISOString()}</div>
+  <div class="footer">MeterIQ v51 · Smart Meter Management · ${new Date().toISOString()}</div>
   </body></html>`;
 
   closeM('mReport');
