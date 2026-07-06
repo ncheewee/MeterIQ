@@ -357,9 +357,11 @@ function getLoginUsers() {
 }
 
 function saveUser(user, body) {
-  if (user.role !== 'admin') return { ok: false, error: 'Admin only' };
   const u = parseParam(body.user);
   if (!u) return { ok: false, error: 'User data required' };
+  // Admins can save any user; managers can save inspectors only.
+  if (user.role !== 'admin' && !(user.role === 'manager' && u.role === 'inspector'))
+    return { ok: false, error: 'Managers can only manage inspectors' };
   const { name, pin, role, propIds, active } = u;
   if (!name || !role) return { ok: false, error: 'Name and role required' };
   if (pin && !/^\d{6}$/.test(pin)) return { ok: false, error: 'PIN must be 6 digits' };
@@ -388,10 +390,13 @@ function saveUser(user, body) {
 }
 
 function deleteUser(user, body) {
-  if (user.role !== 'admin') return { ok: false, error: 'Admin only' };
   const sheet = getSheet(SHEETS.USERS);
   const idx   = findRow(sheet, body.name, 0);
   if (idx < 0) return { ok: false, error: 'User not found' };
+  // Admins can delete anyone; managers can delete inspectors only.
+  const targetRole = sheet.getRange(idx + 1, 3).getValue(); // col 3 = role
+  if (user.role !== 'admin' && !(user.role === 'manager' && targetRole === 'inspector'))
+    return { ok: false, error: 'Managers can only manage inspectors' };
   sheet.deleteRow(idx + 1);
   return { ok: true };
 }

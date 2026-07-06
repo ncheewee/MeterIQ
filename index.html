@@ -476,7 +476,7 @@ select.fi option{background:var(--sf)}
       style="margin-top:10px;width:100%;padding:13px;border-radius:var(--r);background:var(--am);border:none;font-family:'Rajdhani',sans-serif;font-size:calc(15px * var(--fs));font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#000;cursor:pointer;transition:opacity .15s"
       ontouchstart="this.style.opacity='.75'" ontouchend="this.style.opacity='1'">SIGN IN →</button>
   </div>
-  <div class="lver">v53</div>
+  <div class="lver">v54</div>
 </div>
 
 <!-- ═══ APP ═══ -->
@@ -492,7 +492,7 @@ select.fi option{background:var(--sf)}
         <circle cx="50" cy="62" r="6.5" fill="var(--am)"/>
         <circle cx="50" cy="62" r="2.5" fill="var(--sf)"/>
       </svg>
-      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v53</span></div>
+      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v54</span></div>
     </div>
     <div class="hdr-right">
       <div class="hdr-identity">
@@ -757,7 +757,7 @@ select.fi option{background:var(--sf)}
         </div>
         <div class="si" id="btnClearData"><div><div class="slbl">Clear All</div><div class="ssub">Cannot be undone</div></div><button class="btn btd" style="padding:6px 11px;font-size:12px" onclick="clearAll()">Clear</button></div>
       </div>
-      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v53 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
+      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v54 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
     </div>
 
     <!-- ADMIN (role-gated) -->
@@ -3649,7 +3649,7 @@ async function generateReport(){
     <span>🔵 Low — −40%+ below avg, check meter/supply</span>
   </div>
 
-  <div class="footer">MeterIQ v53 · Smart Meter Management · ${new Date().toISOString()}</div>
+  <div class="footer">MeterIQ v54 · Smart Meter Management · ${new Date().toISOString()}</div>
   </body></html>`;
 
   closeM('mReport');
@@ -3888,7 +3888,12 @@ function openAddUser(){
   document.getElementById('auNameHint').style.display='none';
   document.getElementById('auPinHint').textContent='Required for new user';
   clearPinBoxes();
-  document.getElementById('auRole').value='inspector';
+  const myRole=S.session?.user?.role;
+  const sel=document.getElementById('auRole');
+  sel.value='inspector';
+  // Managers can only create inspectors — lock the picker.
+  sel.disabled=(myRole==='manager');
+  sel.style.opacity=sel.disabled?'0.5':'';
   renderPropChecks([]);
   openM('mAddUser');
 }
@@ -3903,6 +3908,11 @@ function openEditUser(u){
   document.getElementById('auPinHint').textContent='Leave blank to keep existing PIN';
   setPinBoxes(u.pin||'');
   document.getElementById('auRole').value=u.role||'inspector';
+  const myRole=S.session?.user?.role;
+  const sel=document.getElementById('auRole');
+  // Managers can only edit inspectors and only set role=inspector.
+  sel.disabled=(myRole==='manager');
+  sel.style.opacity=sel.disabled?'0.5':'';
   const pids=Array.isArray(u.propIds)?u.propIds:(u.propIds||'').toString().split(',').filter(Boolean);
   renderPropChecks(pids);
   openM('mAddUser');
@@ -3945,8 +3955,10 @@ async function submitUser(){
 
   if(res?.ok){
     closeM('mAddUser');toast('✓ User saved','ok');
+  } else if(res?.error){
+    toast(res?.error,'err');          // show real reason, keep modal open
   } else {
-    toast(res?.error||'Backend unreachable — saved locally');
+    toast('Backend unreachable — saved locally');
     closeM('mAddUser');
   }
   renderAdminUsers();
