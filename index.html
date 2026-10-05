@@ -203,6 +203,10 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Barlow',
 .t-high    {background:var(--yld);border:1px solid var(--yl);color:var(--yl)}
 .t-critical{background:var(--rdd);border:1px solid var(--rd);color:var(--rd)}
 .t-low     {background:var(--bld);border:1px solid var(--bl);color:var(--bl)}
+.nmbox{margin-top:8px;padding:10px 12px;border:1px solid var(--am);border-radius:var(--rs);background:var(--amg)}
+.nmbox label{display:flex;align-items:flex-start;gap:8px;font-size:calc(13px * var(--fs));color:var(--tx);cursor:pointer;line-height:1.35}
+.nmhint{font-size:calc(11px * var(--fs));color:var(--tx2);margin-top:6px;line-height:1.4}
+.nmremark{margin-top:8px;padding:9px 11px;background:var(--amg);border:1px solid var(--am);border-radius:var(--rs);font-size:calc(13px * var(--fs));color:var(--tx);line-height:1.4}
 .tico{font-size:18px;flex-shrink:0}
 
 /* ── CAPTURE ── */
@@ -476,7 +480,7 @@ select.fi option{background:var(--sf)}
       style="margin-top:10px;width:100%;padding:13px;border-radius:var(--r);background:var(--am);border:none;font-family:'Rajdhani',sans-serif;font-size:calc(15px * var(--fs));font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#000;cursor:pointer;transition:opacity .15s"
       ontouchstart="this.style.opacity='.75'" ontouchend="this.style.opacity='1'">SIGN IN →</button>
   </div>
-  <div class="lver">v54</div>
+  <div class="lver">v55</div>
 </div>
 
 <!-- ═══ APP ═══ -->
@@ -492,7 +496,7 @@ select.fi option{background:var(--sf)}
         <circle cx="50" cy="62" r="6.5" fill="var(--am)"/>
         <circle cx="50" cy="62" r="2.5" fill="var(--sf)"/>
       </svg>
-      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v54</span></div>
+      <div>METERIQ<span style="display:block;font-family:'Share Tech Mono',monospace;font-size:calc(9px * var(--fs));font-weight:400;letter-spacing:1px;color:var(--tx3);margin-top:-2px">v55</span></div>
     </div>
     <div class="hdr-right">
       <div class="hdr-identity">
@@ -757,7 +761,7 @@ select.fi option{background:var(--sf)}
         </div>
         <div class="si" id="btnClearData"><div><div class="slbl">Clear All</div><div class="ssub">Cannot be undone</div></div><button class="btn btd" style="padding:6px 11px;font-size:12px" onclick="clearAll()">Clear</button></div>
       </div>
-      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v54 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
+      <div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px">MeterIQ v55 · Property Meter Management<br><span style="color:var(--am)">Groq · Llama · Gemini · Claude Vision AI</span></div>
     </div>
 
     <!-- ADMIN (role-gated) -->
@@ -884,6 +888,15 @@ select.fi option{background:var(--sf)}
         <div class="fg"><div class="fl">Time</div><input class="fi" type="time" id="editRTime"></div>
       </div>
       <div class="fg"><div class="fl">Notes (optional)</div><input class="fi ft" id="editRNotes" placeholder="e.g. post-maintenance read" maxlength="100"></div>
+      <div class="nmbox" id="editNewMeterBox">
+        <label><input type="checkbox" id="editNewMeterChk" onchange="onEditNewMeterToggle()" style="margin-top:2px;accent-color:var(--am)">
+          <span><strong>New meter</strong> — this reading starts again from zero</span></label>
+        <div class="nmhint">Use this when the meter was replaced. The remark is the audit trail, and the drop from the old meter is left out of consumption and trends.</div>
+        <div id="editNewMeterRemarkWrap" style="display:none;margin-top:8px">
+          <div class="fl">Remark (required)</div>
+          <textarea class="fi ft" id="editNewMeterRemark" maxlength="240" placeholder="Why the meter was replaced" style="min-height:64px;resize:vertical"></textarea>
+        </div>
+      </div>
       <div class="brow">
         <button class="btn btg" onclick="closeM('mEditReading')">Cancel</button>
         <button class="btn btp" onclick="saveEditReading()">Save Changes</button>
@@ -1521,7 +1534,10 @@ async function loginAs(sess){
         for(const[pid,us]of Object.entries(byPropU))await DB.set('units_'+pid,us);
       }
       const byProp={};(rd.readings||[]).forEach(r=>{(byProp[r.propId]=byProp[r.propId]||[]).push(r);});
-      for(const[pid,rds]of Object.entries(byProp))await DB.set('readings_'+pid,rds);
+      for(const[pid,rds]of Object.entries(byProp)){
+        const local=await DB.get('readings_'+pid)||[];
+        await DB.set('readings_'+pid, mergeSyncedReadings(local,rds));
+      }
       S.lastSync=new Date().toISOString();
     }
   }
@@ -1888,20 +1904,109 @@ function fTime(t){
   return`${hh}:${String(m).padStart(2,'0')} ${ampm}`;
 }
 function dBetween(a,b){return Math.max(0,(new Date(b)-new Date(a))/86400000);}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function isNewMeterReading(r){
+  if(!r)return false;
+  const v=r.newMeter;
+  return v===true||v==='true'||v==='TRUE'||v==='Yes'||v==='YES'||v===1||v==='1';
+}
+// Consumption of curr against prev. Null when curr is the opening reading of a replacement meter,
+// so a reset to zero is never treated as negative usage.
+function readingDelta(prev,curr){
+  if(!prev||!curr||isNewMeterReading(curr))return null;
+  const c=parseFloat(curr.reading)-parseFloat(prev.reading);
+  return isNaN(c)?null:c;
+}
+function usageRates(rds){
+  const rates=[];
+  for(let i=1;i<rds.length;i++){
+    const c=readingDelta(rds[i-1],rds[i]);
+    if(c===null||c<0)continue;
+    const d=Math.max(1,dBetween(rds[i-1].date,rds[i].date));
+    rates.push({rate:c/d,date:rds[i].date,cons:c});
+  }
+  return rates;
+}
+function summedConsumption(rds){
+  let total=0,days=0,n=0;
+  for(let i=1;i<rds.length;i++){
+    const c=readingDelta(rds[i-1],rds[i]);
+    if(c===null||c<0)continue;
+    total+=c;
+    days+=Math.max(1,dBetween(rds[i-1].date,rds[i].date));
+    n++;
+  }
+  return n?{total,days,avg:total/Math.max(1,days)}:null;
+}
+function newMeterBoxHtml(){
+  return `<div class="nmbox" id="newMeterBox" style="display:none">
+    <label><input type="checkbox" id="newMeterChk" onchange="onNewMeterToggle()" style="margin-top:2px;accent-color:var(--am)">
+      <span><strong>New meter</strong> — this reading starts again from zero (or a low opening reading)</span></label>
+    <div class="nmhint">The previous meter stays on the record. This remark explains the reset, and analytics will not treat the drop as usage.</div>
+    <div id="newMeterRemarkWrap" style="display:none;margin-top:8px">
+      <div class="fl">Remark (required)</div>
+      <textarea class="fi ft" id="newMeterRemark" maxlength="240" placeholder="Why the meter was replaced" style="min-height:64px;resize:vertical"></textarea>
+    </div>
+  </div>`;
+}
+function suggestNewMeterRemark(){
+  const rds=getMR(cap.uid,cap.mt),last=rds[rds.length-1],md=MDEFS.find(m=>m.type===cap.mt);
+  if(!last)return 'Meter replaced. Opening reading of the new meter.';
+  return `Meter replaced. Opening reading of the new meter. Previous meter last read ${last.reading} ${md?.unit||''} on ${last.date}.`;
+}
+function onNewMeterToggle(){
+  const on=!!document.getElementById('newMeterChk')?.checked;
+  const wrap=document.getElementById('newMeterRemarkWrap');
+  if(wrap)wrap.style.display=on?'':'none';
+  const ta=document.getElementById('newMeterRemark');
+  if(on&&ta&&!ta.value.trim())ta.value=suggestNewMeterRemark();
+  const v=document.getElementById('confIn')?.value||cap.extracted||'';
+  checkAnomaly(v);
+}
+function onEditNewMeterToggle(){
+  const on=!!document.getElementById('editNewMeterChk')?.checked;
+  const wrap=document.getElementById('editNewMeterRemarkWrap');
+  if(wrap)wrap.style.display=on?'':'none';
+  const ta=document.getElementById('editNewMeterRemark');
+  if(on&&ta&&!ta.value.trim()){
+    const id=document.getElementById('editRId')?.value;
+    const r=S.readings.find(x=>x.id===id);
+    const prev=r?getMR(r.unitId,r.meterType).filter(x=>x.id!==r.id).slice(-1)[0]:null;
+    const md=r?MDEFS.find(m=>m.type===r.meterType):null;
+    ta.value=prev?`Meter replaced. Opening reading of the new meter. Previous meter last read ${prev.reading} ${md?.unit||''} on ${prev.date}.`:'Meter replaced. Opening reading of the new meter.';
+  }
+}
+function mergeSyncedReadings(local,remote){
+  const loc=Array.isArray(local)?local:[];
+  const byId={};
+  loc.forEach(r=>{if(r&&r.id)byId[r.id]=r;});
+  const remoteIds=new Set();
+  const merged=(remote||[]).map(r=>{
+    remoteIds.add(r.id);
+    const prev=byId[r.id];
+    const base=prev?{...prev,...r,notes:r.notes||prev.notes||'',remark:r.remark||prev.remark||'',photoData:r.photoData||prev.photoData||'',imageUrl:r.imageUrl||prev.imageUrl||''}:r;
+    base.newMeter=isNewMeterReading(r)||(prev&&isNewMeterReading(prev));
+    if(!base.remark)base.remark='';
+    return base;
+  });
+  loc.forEach(r=>{if(r&&r.id&&!remoteIds.has(r.id))merged.push(r);});
+  return merged;
+}
 
 // ═══════════════════════════════════════════
 //  TREND ASSESSMENT — pattern intelligence
 // ═══════════════════════════════════════════
 function assessTrend(rds){
-  if(rds.length<4)return null;
+  if(!rds||!rds.length)return null;
   const md=MDEFS.find(m=>m.type===rds[0].meterType),u=md?.unit||'units';
-  // Build daily-rate series
-  const pts=[];
-  for(let i=1;i<rds.length;i++){
-    const d=Math.max(1,dBetween(rds[i-1].date,rds[i].date));
-    const c=parseFloat(rds[i].reading)-parseFloat(rds[i-1].reading);
-    if(c>=0)pts.push({rate:c/d,date:rds[i].date});
+  const lastRd=rds[rds.length-1];
+  const sameSeries=rds.every(r=>r.unitId===lastRd.unitId&&r.meterType===lastRd.meterType);
+  if(isNewMeterReading(lastRd)&&sameSeries){
+    return{lv:'normal',icon:'🔁',lbl:'New meter',
+      txt:`Opening reading ${fNum(lastRd.reading,md?.dec??2)} ${u}. Replacement meter — the drop from the previous meter is excluded from consumption and trends. ${lastRd.remark||''}`.trim(),cls:'t-normal'};
   }
+  if(rds.length<4)return null;
+  const pts=usageRates(rds);
   if(pts.length<3)return null;
 
   const rates=pts.map(p=>p.rate);
@@ -2003,17 +2108,12 @@ function renderDashboard(){
   const last=rds[rds.length-1];
   document.getElementById('dNum').textContent=fNum(last.reading,md.dec);
   document.getElementById('dUnit').textContent=md.unit;
-  document.getElementById('dDate').textContent=fDate(last.date)+'  '+fTime(last.time);
+  document.getElementById('dDate').textContent=fDate(last.date)+'  '+fTime(last.time)+(isNewMeterReading(last)?'  ·  New meter':'');
 
   // ── Expected Now (forecast range) ────────
   if(rds.length>=2&&fcCard){
     const recent=rds.slice(-7);
-    const rates=[];
-    for(let i=1;i<recent.length;i++){
-      const d=Math.max(1,dBetween(recent[i-1].date,recent[i].date));
-      const c=parseFloat(recent[i].reading)-parseFloat(recent[i-1].reading);
-      if(c>=0)rates.push(c/d);
-    }
+    const rates=usageRates(recent).map(p=>p.rate);
     if(rates.length){
       const avgRate=rates.reduce((s,v)=>s+v,0)/rates.length;
       const stddev=rates.length>1
@@ -2311,6 +2411,7 @@ function renderStep(){
             <input class="cinput" type="number" id="confIn" step="${md.dec===0?'1':'0.001'}" inputmode="${md.dec===0?'numeric':'decimal'}"
               oninput="checkAnomaly(this.value)">
           </div>
+          ${newMeterBoxHtml()}
           <div id="anomalyZone"></div>
           ${getRefCard()}
           <div class="frow">
@@ -2338,6 +2439,7 @@ function renderStep(){
             placeholder="${md.dec===0?'e.g. 12345':'e.g. 12345.6'}"
             oninput="checkAnomaly(this.value)"
             style="font-size:calc(26px * var(--fs));text-align:center;letter-spacing:2px">
+          ${newMeterBoxHtml()}
           <div id="anomalyZone" style="margin-top:8px;text-align:left"></div>
         </div>
         ${dtFields}
@@ -2376,11 +2478,12 @@ function showConfirmZone(){
           step="${md?.dec===0?'1':'0.001'}" inputmode="${md?.dec===0?'numeric':'decimal'}"
           value="${cap.extracted||''}"
           oninput="document.getElementById('extractedDisplay').textContent=fNum(this.value,${md?.dec||0});checkAnomaly(this.value)">
-        <div id="anomalyZone" style="margin-top:8px;text-align:left"></div>
       </div>
     </div>
     ${dtFields}
-    <div class="fg" style="margin-top:4px"><div class="fl">Notes (optional)</div><input class="fi ft" id="rNotes" placeholder="e.g. after shutdown…" maxlength="100"></div>`;
+    <div class="fg" style="margin-top:4px"><div class="fl">Notes (optional)</div><input class="fi ft" id="rNotes" placeholder="e.g. after shutdown…" maxlength="100"></div>
+    ${newMeterBoxHtml()}
+    <div id="anomalyZone" style="margin-top:8px;text-align:left"></div>`;
   checkAnomaly(cap.extracted);
   getCap('btnNext').disabled=false;
   getCap('btnNext').textContent='Save Reading';
@@ -2395,7 +2498,7 @@ function getRefCard(){
   const last=rds[rds.length-1],dAgo=Math.round(dBetween(last.date,new Date().toISOString().split('T')[0]));
   let expHtml='';
   if(rds.length>=2){
-    const pts=[];for(let i=Math.max(1,rds.length-6);i<rds.length;i++){const d=Math.max(1,dBetween(rds[i-1].date,rds[i].date));const c=parseFloat(rds[i].reading)-parseFloat(rds[i-1].reading);if(c>=0)pts.push(c/d);}
+    const pts=usageRates(rds.slice(-7)).map(p=>p.rate);
     if(pts.length){const avg=pts.reduce((s,v)=>s+v,0)/pts.length;const lo=(parseFloat(last.reading)+avg*dAgo*0.7).toFixed(md.dec),hi=(parseFloat(last.reading)+avg*dAgo*1.3).toFixed(md.dec);
       expHtml=`<div><div class="refil">Expected today</div><div class="refiv exp">${lo} – ${hi}</div></div>`;}
   }
@@ -2603,27 +2706,29 @@ function checkAnomaly(val){
   const zone=document.getElementById('anomalyZone');if(!zone)return;
   const md=MDEFS.find(m=>m.type===cap.mt);
   const rds=getMR(cap.uid,cap.mt);
-  if(!rds.length||!val||isNaN(parseFloat(val))){zone.innerHTML='';return;}
+  const box=document.getElementById('newMeterBox');
+  const replaced=!!document.getElementById('newMeterChk')?.checked;
+  if(!rds.length||!val||isNaN(parseFloat(val))){zone.innerHTML='';if(box&&!replaced)box.style.display='none';return;}
   const v=parseFloat(val);const warnings=[];
   const last=rds[rds.length-1];const lastV=parseFloat(last.reading);
-  // 1. Reading went backwards
-  if(v<lastV){warnings.push({cls:'t-critical',icon:'🔴',msg:`Reading ${v} is LOWER than last recorded ${lastV} ${md.unit} — meters cannot run backwards. Likely OCR error.`});}
-  // 2. Compare vs expected range
-  if(rds.length>=2){
-    const pts=[];
-    for(let i=Math.max(1,rds.length-8);i<rds.length;i++){const d=Math.max(1,dBetween(rds[i-1].date,rds[i].date));const c=parseFloat(rds[i].reading)-parseFloat(rds[i-1].reading);if(c>=0)pts.push(c/d);}
+  const lower=v<lastV;
+  if(box)box.style.display=(lower||replaced)?'':'none';
+  if(replaced){
+    zone.innerHTML=`<div class="tbadge t-normal" style="font-size:calc(12px * var(--fs))"><span style="font-size:17px;flex-shrink:0">🔁</span><span>New meter. This opening reading is not subtracted from ${fNum(lastV,md.dec)} ${md.unit}. Add a remark so the reset stays on the audit trail.</span></div>`;
+    return;
+  }
+  if(lower){warnings.push({cls:'t-critical',icon:'🔴',msg:`Reading ${v} is lower than the last recorded ${fNum(lastV,md.dec)} ${md.unit}. If the meter was replaced, mark New meter and add a remark. Otherwise this is likely an OCR error.`});}
+  else if(rds.length>=2){
+    const pts=usageRates(rds.slice(-9)).map(p=>p.rate);
     if(pts.length>=2){
       const avg=pts.reduce((s,x)=>s+x,0)/pts.length;
       const dAgo=Math.max(1,dBetween(last.date,new Date().toISOString().split('T')[0]));
-      const lo=lastV+avg*dAgo*0.4,hi=lastV+avg*dAgo*2.5;
       const consumption=v-lastV;
       const dailyRate=consumption/dAgo;
-      if(v>lastV){
-        if(dailyRate>avg*3){warnings.push({cls:'t-critical',icon:'🔴',msg:`Daily rate ${dailyRate.toFixed(md.dec)} ${md.unit}/day is ${((dailyRate/avg-1)*100).toFixed(0)}% above normal (${avg.toFixed(md.dec)}/day). Verify reading — possible OCR digit error.`});}
-        else if(dailyRate>avg*1.5){warnings.push({cls:'t-high',icon:'🟡',msg:`Daily rate ${dailyRate.toFixed(md.dec)} ${md.unit}/day is elevated vs normal ${avg.toFixed(md.dec)}/day. Worth confirming.`});}
-        else if(dailyRate<avg*0.3&&dAgo>3){warnings.push({cls:'t-low',icon:'🔵',msg:`Daily rate ${dailyRate.toFixed(md.dec)} ${md.unit}/day seems very low vs normal ${avg.toFixed(md.dec)}/day. Check reading.`});}
-        else{warnings.push({cls:'t-normal',icon:'🟢',msg:`Consumption rate ${dailyRate.toFixed(md.dec)} ${md.unit}/day — within normal range (avg ${avg.toFixed(md.dec)}/day). ✓`});}
-      }
+      if(dailyRate>avg*3){warnings.push({cls:'t-critical',icon:'🔴',msg:`Daily rate ${dailyRate.toFixed(md.dec)} ${md.unit}/day is ${((dailyRate/avg-1)*100).toFixed(0)}% above normal (${avg.toFixed(md.dec)}/day). Verify reading — possible OCR digit error.`});}
+      else if(dailyRate>avg*1.5){warnings.push({cls:'t-high',icon:'🟡',msg:`Daily rate ${dailyRate.toFixed(md.dec)} ${md.unit}/day is elevated vs normal ${avg.toFixed(md.dec)}/day. Worth confirming.`});}
+      else if(dailyRate<avg*0.3&&dAgo>3){warnings.push({cls:'t-low',icon:'🔵',msg:`Daily rate ${dailyRate.toFixed(md.dec)} ${md.unit}/day seems very low vs normal ${avg.toFixed(md.dec)}/day. Check reading.`});}
+      else{warnings.push({cls:'t-normal',icon:'🟢',msg:`Consumption rate ${dailyRate.toFixed(md.dec)} ${md.unit}/day — within normal range (avg ${avg.toFixed(md.dec)}/day). ✓`});}
     }
   }
   if(!warnings.length){zone.innerHTML='';return;}
@@ -2684,11 +2789,11 @@ function buildPrompt(mt,uid){
   const md=MDEFS.find(m=>m.type===mt),rds=getMR(uid,mt);
   let ctx='';
   if(rds.length>=2){
-    const last=rds[rds.length-1],pts=[];
-    for(let i=Math.max(1,rds.length-6);i<rds.length;i++){const d=Math.max(1,dBetween(rds[i-1].date,rds[i].date));const c=parseFloat(rds[i].reading)-parseFloat(rds[i-1].reading);if(c>=0)pts.push(c/d);}
+    const last=rds[rds.length-1];
+    const pts=usageRates(rds.slice(-7)).map(p=>p.rate);
     if(pts.length){const avg=pts.reduce((s,v)=>s+v,0)/pts.length;const dAgo=Math.round(dBetween(last.date,new Date().toISOString().split('T')[0]));
       const lo=(parseFloat(last.reading)+avg*dAgo*0.6).toFixed(md.dec),hi=(parseFloat(last.reading)+avg*dAgo*1.4).toFixed(md.dec);
-      ctx=`\nHISTORICAL CONTEXT:\n- Last reading: ${last.reading} ${md.unit} on ${last.date} (${dAgo} days ago)\n- Historical daily avg: ${avg.toFixed(md.dec)} ${md.unit}/day\n- Expected range today: ${lo} to ${hi}\n- If extracted reading is far outside this range, re-examine the image carefully.\n- Common OCR errors: 6→0, 1→7, decimal in wrong position.`;}
+      ctx=`\nHISTORICAL CONTEXT:\n- Last reading: ${last.reading} ${md.unit} on ${last.date} (${dAgo} days ago)\n- Historical daily avg: ${avg.toFixed(md.dec)} ${md.unit}/day\n- Expected range today: ${lo} to ${hi}\n- If extracted reading is far outside this range, re-examine the image carefully.\n- A much lower reading can be a replacement meter that starts from zero. Report the digits you actually see. Do not force the number up into the expected range.\n- Common OCR errors: 6→0, 1→7, decimal in wrong position.`;}
   }
   const hints={
     electricity:`METER TYPE: Electricity (kWh). Extract PRIMARY kWh reading. Usually no decimal (integer like 45678). Some meters show one decimal. Ignore kvarh/kvar columns.`,
@@ -2759,18 +2864,29 @@ function showExtErr(msg){
 async function saveReading(){
   const date=document.getElementById('rDate').value,time=document.getElementById('rTime').value,notes=document.getElementById('rNotes')?.value.trim()||'';
   if(!date||!time){toast('Date and time required','err');return;}
+  const newMeter=!!document.getElementById('newMeterChk')?.checked;
+  const remark=(document.getElementById('newMeterRemark')?.value||'').trim();
+  const prior=getMR(cap.uid,cap.mt);
+  const lastPrior=prior[prior.length-1];
+  if(lastPrior&&parseFloat(cap.confirmed)<parseFloat(lastPrior.reading)&&!newMeter){
+    toast('Reading is lower than the last one. Mark New meter and add a remark, or correct the number.','err');
+    return;
+  }
+  if(newMeter&&!remark){toast('Add a remark explaining the new meter','err');return;}
   // Compress photo to thumbnail for storage
   const photoThumb=await compressForStorage(cap.croppedPhoto||cap.photo);
   const r={id:'r_'+Date.now(),propId:S.prop.id,unitId:cap.uid,meterType:cap.mt,reading:cap.confirmed,
-    date,time,notes,photoData:photoThumb,aiConf:cap.conf,savedAt:new Date().toISOString()};
+    date,time,notes,remark:newMeter?remark:'',newMeter,photoData:photoThumb,aiConf:cap.conf,savedAt:new Date().toISOString()};
   S.readings.push(r);saveR();S.activeUnit=cap.uid;S.activeMeter=cap.mt;
   refreshAll();
   const allR=getMR(cap.uid,cap.mt),tr=assessTrend(allR),md=MDEFS.find(m=>m.type===cap.mt);
   const prev=allR.length>=2?allR[allR.length-2]:null;
-  const cons=prev?(parseFloat(r.reading)-parseFloat(prev.reading)).toFixed(md.dec):null;
-  const days=prev?Math.round(dBetween(prev.date,r.date)):null;
+  const delta=prev?readingDelta(prev,r):null;
+  const cons=delta===null||delta<0?null:delta.toFixed(md.dec);
+  const days=prev&&cons!==null?Math.round(dBetween(prev.date,r.date)):null;
   document.getElementById('assessContent').innerHTML=`<div class="anum">${fNum(r.reading,md.dec)}</div>
-    <div class="acons">${md.unit} · ${md.icon} ${md.label}${cons!==null?` · +${cons} over ${days}d`:''}</div>
+    <div class="acons">${md.unit} · ${md.icon} ${md.label}${newMeter?' · new meter':cons!==null?` · +${cons} over ${days}d`:''}</div>
+    ${newMeter?`<div class="nmremark">🔁 ${esc(remark)}</div>`:''}
     ${tr?`<div class="tbadge ${tr.cls}"><div class="tico">${tr.icon}</div><div><strong>${tr.lbl}</strong><br><span style="font-weight:400;font-size:calc(11px * var(--fs))">${tr.txt}</span></div></div>`:`<div style="color:var(--tx2);font-size:calc(13px * var(--fs));padding:8px 0">✓ Saved. Trend analysis available after 5+ readings.</div>`}`;
   toast('✓ Reading saved!','ok');if(cap.inline){closeInlineCap();renderDashboard();}else{go('dash');}setTimeout(()=>openM('mAssess'),300);
   // Queue background sync to Google Sheets (non-blocking — stays snappy)
@@ -2813,7 +2929,7 @@ async function saveReading(){
         `Meter: ${md.icon} ${md.label}\n\n`+
         `<b>${lvLbl}</b>${tr?'\n'+tr.txt:''}\n\n`+
         `Reading: <b>${fNum(r.reading,md.dec)} ${md.unit}</b>`+
-        (cons!==null?`\nConsumption: +${cons} ${md.unit} over ${days}d`:'')+
+        (newMeter?`\nNew meter: ${remark}`:(cons!==null?`\nConsumption: +${cons} ${md.unit} over ${days}d`:''))+
         `\nSaved: ${fDate(r.date)} ${r.time}`;
       sendTelegramAlert(msg);
     }
@@ -2833,14 +2949,19 @@ function renderHistory(){
   list.innerHTML=rds.map(r=>{
     const idx=sorted.findIndex(x=>x.id===r.id),prev=sorted[idx-1];
     let cH='';
-    if(prev){const c=parseFloat(r.reading)-parseFloat(prev.reading),d=Math.max(1,dBetween(prev.date,r.date));cH=`<div class="hcons"><div class="hcv ${c>=0?'cp':'cn'}">${c>=0?'+':''}${c.toFixed(md.dec)}</div><div class="hcl">${md.unit}·${d}d</div></div>`;}
+    if(isNewMeterReading(r)){
+      cH=`<div class="hcons"><div class="hcv" style="color:var(--am);font-size:calc(12px * var(--fs))">New meter</div><div class="hcl">baseline</div></div>`;
+    } else if(prev){
+      const c=readingDelta(prev,r),d=Math.max(1,dBetween(prev.date,r.date));
+      if(c!==null)cH=`<div class="hcons"><div class="hcv ${c>=0?'cp':'cn'}">${c>=0?'+':''}${c.toFixed(md.dec)}</div><div class="hcl">${md.unit}·${d}d</div></div>`;
+    }
     // Photo: prefer local base64 thumbnail (photoData), fall back to Drive URL (imageUrl)
     const imgSrc=r.photoData||r.imageUrl||'';
     const icoHtml=imgSrc
       ?`<img src="${imgSrc}" style="width:36px;height:36px;object-fit:cover;border-radius:7px;flex-shrink:0" loading="lazy">`
       :`<div class="hico">${md.icon}</div>`;
     return`<div class="hi" onclick="showDetail('${r.id}')">${icoHtml}
-      <div class="hb"><div class="hn">${u.number}${r.notes?' · '+r.notes:''}</div><div class="hr">${fNum(r.reading,md.dec)}</div><div class="hd">${fDate(r.date)} ${fTime(r.time)}</div></div>${cH}</div>`;
+      <div class="hb"><div class="hn">${esc(u.number)}${r.notes?' · '+esc(r.notes):''}</div><div class="hr">${fNum(r.reading,md.dec)}</div><div class="hd">${fDate(r.date)} ${fTime(r.time)}</div>${r.remark?`<div class="hd">🔁 ${esc(r.remark)}</div>`:''}</div>${cH}</div>`;
   }).join('');
 }
 
@@ -2849,7 +2970,8 @@ function showDetail(id){
   const u=S.units.find(x=>x.id===r.unitId),md=MDEFS.find(m=>m.type===r.meterType);if(!u||!md)return;
   const sorted=getMR(u.id,md.type),idx=sorted.findIndex(x=>x.id===id),prev=sorted[idx-1];
   let cons='—',daily='—';
-  if(prev){const c=parseFloat(r.reading)-parseFloat(prev.reading),d=Math.max(1,dBetween(prev.date,r.date));cons=`${c.toFixed(md.dec)} ${md.unit}`;daily=`${(c/d).toFixed(md.dec)} ${md.unit}/day`;}
+  if(isNewMeterReading(r)){cons='New meter';daily='Baseline';}
+  else if(prev){const c=readingDelta(prev,r);if(c!==null){const d=Math.max(1,dBetween(prev.date,r.date));cons=`${c.toFixed(md.dec)} ${md.unit}`;daily=`${(c/d).toFixed(md.dec)} ${md.unit}/day`;}}
   const ct=r.aiConf==='high'?'tg':r.aiConf==='medium'?'ta':'tr';
   // Photo: prefer local thumbnail (offline-safe), fall back to Drive URL
   const detImgSrc=r.photoData||r.imageUrl||'';
@@ -2863,7 +2985,8 @@ function showDetail(id){
       <div class="deti"><div class="detil">Consumption</div><div class="detiv">${cons}</div></div>
       <div class="deti"><div class="detil">Daily Avg</div><div class="detiv">${daily}</div></div>
     </div>
-    ${r.notes?`<div style="margin:9px 0;padding:9px 11px;background:var(--sf2);border-radius:var(--rs);font-size:13px;color:var(--tx2)">📝 ${r.notes}</div>`:''}
+    ${r.remark?`<div class="nmremark">🔁 New meter — ${esc(r.remark)}</div>`:''}
+    ${r.notes?`<div style="margin:9px 0;padding:9px 11px;background:var(--sf2);border-radius:var(--rs);font-size:13px;color:var(--tx2)">📝 ${esc(r.notes)}</div>`:''}
     ${r.aiConf?`<div style="text-align:center;margin:7px 0"><span class="tag ${ct}">AI ${r.aiConf} confidence</span></div>`:''}
     <div style="height:11px"></div>
     ${S.session?.user?.role==='admin'?`<button class="btn btg bfull" style="margin-bottom:8px" onclick="openEditReading('${r.id}')">✏️ Edit Reading</button>`:''}
@@ -2891,6 +3014,10 @@ function openEditReading(id){
   document.getElementById('editRTime').value=r.time;
   document.getElementById('editRNotes').value=r.notes||'';
   document.getElementById('editRUnitLbl').textContent=md?.unit||'';
+  const nm=isNewMeterReading(r);
+  document.getElementById('editNewMeterChk').checked=nm;
+  document.getElementById('editNewMeterRemark').value=r.remark||'';
+  document.getElementById('editNewMeterRemarkWrap').style.display=nm?'':'none';
   openM('mEditReading');
 }
 async function saveEditReading(){
@@ -2899,10 +3026,20 @@ async function saveEditReading(){
   const date=document.getElementById('editRDate').value;
   const time=document.getElementById('editRTime').value;
   const notes=document.getElementById('editRNotes').value.trim();
+  const newMeter=!!document.getElementById('editNewMeterChk')?.checked;
+  const remark=(document.getElementById('editNewMeterRemark')?.value||'').trim();
   if(!val||isNaN(parseFloat(val))){toast('Enter a valid reading','err');return;}
   if(!date||!time){toast('Date and time required','err');return;}
   const idx=S.readings.findIndex(r=>r.id===id);if(idx<0)return;
-  const r={...S.readings[idx],reading:val,date,time,notes,editedAt:new Date().toISOString()};
+  const existing=S.readings[idx];
+  const earlier=getMR(existing.unitId,existing.meterType).filter(x=>x.id!==existing.id&&new Date(x.date+'T'+x.time)<new Date(date+'T'+time));
+  const prev=earlier[earlier.length-1];
+  if(prev&&parseFloat(val)<parseFloat(prev.reading)&&!newMeter){
+    toast('Reading is lower than the previous one. Mark New meter and add a remark, or correct the number.','err');
+    return;
+  }
+  if(newMeter&&!remark){toast('Add a remark explaining the new meter','err');return;}
+  const r={...existing,reading:val,date,time,notes,remark:newMeter?remark:'',newMeter,editedAt:new Date().toISOString()};
   S.readings[idx]=r;
   saveR();
   closeM('mEditReading');closeM('mDetail');
@@ -2935,8 +3072,8 @@ function getMonthlyConsumption(unitId, meterType){
   units.forEach(uid=>{
     const rds=getMR(uid,meterType);
     for(let i=1;i<rds.length;i++){
-      const c=parseFloat(rds[i].reading)-parseFloat(rds[i-1].reading);
-      if(c<0)continue;
+      const c=readingDelta(rds[i-1],rds[i]);
+      if(c===null||c<0)continue;
       const key=rds[i].date.slice(0,7); // YYYY-MM
       map[key]=(map[key]||0)+c;
     }
@@ -3168,6 +3305,8 @@ function renderAnalytics(){
   else if(dataMonths<6) qualifiers.push('Limited history ('+dataMonths+' months) — forecast may be imprecise');
   if(calMonthsCovered<6) qualifiers.push('Seasonal pattern incomplete — missing data for some calendar months');
   if(tr?.lv==='critical') qualifiers.push('Recent anomaly detected — forecast extrapolated from pre-anomaly baseline');
+  const replCount=allRds.filter(isNewMeterReading).length;
+  if(replCount) qualifiers.push(replCount+' meter replacement'+(replCount>1?'s':'')+' on record — opening readings are excluded from consumption');
   if(ytdMonths===0) qualifiers.push('No current FY actuals yet — forecast based entirely on prior history');
   else if(ytdMonths<3) qualifiers.push('Only '+ytdMonths+' month'+(ytdMonths!==1?'s':'')+' of current FY so far');
   if(predVals.length>=10) qualifiers.push('Many months remaining — uncertainty increases further out');
@@ -3354,7 +3493,7 @@ async function sendTelegramAlert(msg){
 }
 function exportData(){
   // Build CSV
-  const cols=['Date','Time','Property','Unit','Description','Meter Type','Unit of Measure','Reading','Consumption','Notes','AI Confidence','Saved At'];
+  const cols=['Date','Time','Property','Unit','Description','Meter Type','Unit of Measure','Reading','Consumption','Notes','Remark','New Meter','AI Confidence','Saved At'];
   const rows=[cols];
   // Sort readings by date
   const sorted=[...S.readings].sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
@@ -3365,7 +3504,8 @@ function exportData(){
     const allR=getMR(r.unitId,r.meterType);
     const idx=allR.findIndex(x=>x.id===r.id);
     const prev=allR[idx-1];
-    const cons=prev?(parseFloat(r.reading)-parseFloat(prev.reading)).toFixed(md?.dec??2):'';
+    const delta=prev?readingDelta(prev,r):null;
+    const cons=delta===null?'':delta.toFixed(md?.dec??2);
     rows.push([
       r.date, r.time,
       S.prop?.name||'',
@@ -3376,6 +3516,8 @@ function exportData(){
       r.reading,
       cons,
       r.notes||'',
+      r.remark||'',
+      isNewMeterReading(r)?'Yes':'',
       r.aiConf||'',
       r.savedAt||''
     ]);
@@ -3460,14 +3602,11 @@ async function generateReport(){
     const meters = mTypes.map(md=>{
       const all = getRMR(u.id,md.type);
       const inPeriod = all.filter(r=>new Date(r.date)>=cutoff);
-      if(inPeriod.length<2) return {md,total:null,avg:null,trend:null,readings:inPeriod};
-      const total = parseFloat(inPeriod[inPeriod.length-1].reading)-parseFloat(inPeriod[0].reading);
-      const span  = Math.max(1,dBetween(inPeriod[0].date,inPeriod[inPeriod.length-1].date));
-      const avg   = total/span;
-      const pts=[];
-      for(let i=1;i<all.length;i++){const d=Math.max(1,dBetween(all[i-1].date,all[i].date));const c=parseFloat(all[i].reading)-parseFloat(all[i-1].reading);if(c>=0)pts.push(c/d);}
-      const tr = pts.length>=4 ? assessTrend(inPeriod.length>=5?inPeriod:all) : null;
-      return {md,total,avg,trend:tr,readings:inPeriod};
+      const replacements = inPeriod.filter(isNewMeterReading);
+      const sum = summedConsumption(inPeriod);
+      const tr = usageRates(all).length>=4 ? assessTrend(inPeriod.length>=5?inPeriod:all) : null;
+      if(!sum) return {md,total:null,avg:null,trend:tr,readings:inPeriod,replacements};
+      return {md,total:sum.total,avg:sum.avg,trend:tr,readings:inPeriod,replacements};
     });
     return {u,meters};
   });
@@ -3570,6 +3709,21 @@ async function generateReport(){
 
   // Flagged units section
   const flaggedUnits = unitData.filter(ud=>ud.meters.some(m=>m.trend&&m.trend.lv!=='normal'));
+  const replacementRows = unitData.flatMap(ud=>ud.meters.flatMap(m=>(m.replacements||[]).map(r=>({u:ud.u,md:m.md,r}))));
+  const replacementSection = replacementRows.length ? `
+    <h2>Meter replacements</h2>
+    <div style="padding:8px 10px;background:#fffbeb;border-radius:6px;color:#92400e;font-size:12px;margin-bottom:8px">Opening readings are excluded from consumption totals. A reset to zero is not counted as negative usage.</div>
+    <table>
+      <thead><tr><th>Unit</th><th>Meter</th><th>Date</th><th style="text-align:right">Opening reading</th><th>Remark</th></tr></thead>
+      <tbody>${replacementRows.map(row=>`<tr>
+        <td style="font-weight:600">${esc(row.u.number)}</td>
+        <td>${row.md.icon} ${esc(row.md.label)}</td>
+        <td>${esc(row.r.date)}</td>
+        <td style="text-align:right">${esc(row.r.reading)} ${esc(row.md.unit)}</td>
+        <td>${esc(row.r.remark||'')}</td>
+      </tr>`).join('')}</tbody>
+    </table>` : '';
+
   const flaggedSection = flaggedUnits.length ? `
     <h2>⚠ Flagged Units — Requires Attention</h2>
     <table>
@@ -3628,6 +3782,8 @@ async function generateReport(){
     </div>`).join('')}
   </div>
 
+  ${replacementSection}
+
   ${flaggedSection}
 
   ${chartSections}
@@ -3649,7 +3805,7 @@ async function generateReport(){
     <span>🔵 Low — −40%+ below avg, check meter/supply</span>
   </div>
 
-  <div class="footer">MeterIQ v54 · Smart Meter Management · ${new Date().toISOString()}</div>
+  <div class="footer">MeterIQ v55 · Smart Meter Management · ${new Date().toISOString()}</div>
   </body></html>`;
 
   closeM('mReport');

@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════
-//  MeterIQ Backend — Google Apps Script  v26
+//  MeterIQ Backend — Google Apps Script  v27
 //
 //  SETUP (one-time):
 //  1. Open your Google Sheet → Extensions → Apps Script → paste this code
@@ -7,6 +7,7 @@
 //       Type: Web App | Execute as: Me | Access: Anyone
 //  3. Copy the Web App URL → paste into MeterIQ BACKEND_URL constant
 //
+//  v27 changes: Readings columns remark + newMeter for meter replacements
 //  v26 changes: saveFeedback + getFeedback actions, Feedback sheet tab
 // ═══════════════════════════════════════════════════════════════════
 
@@ -150,6 +151,7 @@ function verifyToken(token) {
 
 // ── SYNC DOWN ───────────────────────────────────────────────────────
 function syncDown(user, body) {
+  ensureReadingColumns();
   const propSheet = getSheet(SHEETS.PROPERTIES);
   let props = propSheet.getDataRange().getValues().slice(1)
     .filter(r => r[0])
@@ -179,7 +181,9 @@ function syncDown(user, body) {
       time: r[6] instanceof Date
         ? Utilities.formatDate(r[6], Session.getScriptTimeZone(), 'HH:mm')
         : (r[6]||'').toString().slice(0,5),
-      notes: r[7], imageUrl: r[8] || '', aiConf: r[9], savedAt: r[10]
+      notes: r[7], imageUrl: r[8] || '', aiConf: r[9], savedAt: r[10],
+      remark: (r[12] || '').toString(),
+      newMeter: r[13] === true || r[13] === 'true' || r[13] === 'TRUE' || r[13] === 'Yes' || r[13] === 'YES'
     }))
     .slice(-500);
 
@@ -187,19 +191,37 @@ function syncDown(user, body) {
 }
 
 // ── PUSH READING ────────────────────────────────────────────────────
+function isNewMeterFlag(v) {
+  return v === true || v === 'true' || v === 'TRUE' || v === 'Yes' || v === 'YES' || v === 1 || v === '1';
+}
+
+function readingToRow(r, syncedBy) {
+  return [
+    r.id, r.propId || '', r.unitId || '', r.meterType || '',
+    r.reading, r.date || '', r.time || '', r.notes || '',
+    r.imageUrl || '', r.aiConf || '', r.savedAt || new Date().toISOString(),
+    syncedBy || '',
+    r.remark || '',
+    isNewMeterFlag(r.newMeter) ? 'Yes' : ''
+  ];
+}
+
 function pushReading(user, body) {
   const r = parseParam(body.reading);
   if (!r || !r.id) return { ok: false, error: 'Reading data required' };
 
+  ensureReadingColumns();
   const sheet = getSheet(SHEETS.READINGS);
-  if (findRow(sheet, r.id, 0) >= 0) return { ok: true, duplicate: true };
+  const idx = findRow(sheet, r.id, 0);
+  if (idx >= 0) {
+    const existing = sheet.getRange(idx + 1, 1, 1, 14).getValues()[0];
+    if (!r.imageUrl) r.imageUrl = existing[8] || '';
+    sheet.getRange(idx + 1, 1, 1, 14).setValues([readingToRow(r, existing[11] || user.name)]);
+    logSync(user.name, 'updateReading', r.id);
+    return { ok: true, updated: true };
+  }
 
-  sheet.appendRow([
-    r.id, r.propId, r.unitId, r.meterType,
-    r.reading, r.date, r.time, r.notes || '',
-    r.imageUrl || '', r.aiConf || '', r.savedAt || new Date().toISOString(),
-    user.name
-  ]);
+  sheet.appendRow(readingToRow(r, user.name));
   logSync(user.name, 'pushReading', r.id);
   return { ok: true };
 }
@@ -464,7 +486,7 @@ function getSheet(name) {
       [SHEETS.USERS]:      ['name', 'pin', 'role', 'propIds', 'active'],
       [SHEETS.PROPERTIES]: ['id', 'name', 'addr', 'icon'],
       [SHEETS.UNITS]:      ['id', 'propId', 'number', 'name', 'location', 'meters'],
-      [SHEETS.READINGS]:   ['id', 'propId', 'unitId', 'meterType', 'reading', 'date', 'time', 'notes', 'imageUrl', 'aiConf', 'savedAt', 'syncedBy'],
+      [SHEETS.READINGS]:   ['id', 'propId', 'unitId', 'meterType', 'reading', 'date', 'time', 'notes', 'imageUrl', 'aiConf', 'savedAt', 'syncedBy', 'remark', 'newMeter'],
       [SHEETS.SYNC_LOG]:   ['timestamp', 'user', 'action', 'ref'],
       [SHEETS.FEEDBACK]:   ['id', 'timestamp', 'user', 'screen', 'appVersion', 'feedback'],
     };
@@ -502,7 +524,15 @@ function resetUsers() {
   return { ok: true, message: 'Users reset. Admin PIN: 000000' };
 }
 
+function ensureReadingColumns() {
+  const sheet = getSheet(SHEETS.READINGS);
+  const header = sheet.getRange(1, 1, 1, 14).getValues()[0];
+  if (!header[12]) sheet.getRange(1, 13).setValue('remark').setFontWeight('bold').setBackground('#f3f4f6');
+  if (!header[13]) sheet.getRange(1, 14).setValue('newMeter').setFontWeight('bold').setBackground('#f3f4f6');
+}
+
 function setupSheets() {
   Object.values(SHEETS).forEach(n => getSheet(n));
+  ensureReadingColumns();
   return { ok: true, message: 'Sheet tabs initialised.' };
 }
